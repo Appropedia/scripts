@@ -26,14 +26,24 @@ class UpdateGoogleAnalytics extends Maintenance {
 				continue;
 			}
 
+			// Don't abuse Google Analytics
+			// https://developers.google.com/analytics/devguides/reporting/core/v4/limits-quotas#analytics_reporting_api_v4
+			sleep( 10 );
+
 			// Query Google Analytics
 			global $wgArticlePath;
-			$page = str_replace( '$1', Title::newFromText( $title )->getPrefixedDBKey(), $wgArticlePath );
+			$page = str_replace( '$1', $title, $wgArticlePath );
 			$pageviews = GoogleAnalyticsMetricsHooks::getMetric( [ 'page' => $page, 'metric' => 'pageviews' ] );
+			if ( !is_int( $pageviews ) ) {
+				continue;
+			}
 			foreach ( $Title->getRedirectsHere() as $Redirect ) {
-				$redirect = $Redirect->getFullText();
-				$page = str_replace( '$1', Title::newFromText( $redirect )->getPrefixedDBKey(), $wgArticlePath );
-				$pageviews += GoogleAnalyticsMetricsHooks::getMetric( [ 'page' => $page, 'metric' => 'pageviews' ] );
+				$redirect = $Redirect->getPrefixedDBKey();
+				$redirect = str_replace( '$1', $redirect, $wgArticlePath );
+				$redirectviews = GoogleAnalyticsMetricsHooks::getMetric( [ 'page' => $redirect, 'metric' => 'pageviews' ] );
+				if ( is_int( $redirectviews ) ) {
+					$pageviews += $redirectviews;
+				}
 			}
 			if ( !$pageviews ) {
 				continue;
@@ -42,10 +52,6 @@ class UpdateGoogleAnalytics extends Maintenance {
 			// Store the pageviews in the database
 			$this->output( $id . ' ' . $Title->getFullURL() . ' -> ' . $pageviews . PHP_EOL );
 			Metadata::set( $id, 'GoogleAnalyticsPageviews', $pageviews );
-
-			// Don't abuse Google Analytics
-			// https://developers.google.com/analytics/devguides/reporting/core/v4/limits-quotas#analytics_reporting_api_v4
-			sleep( 10 );
 		}
 	}
 }
