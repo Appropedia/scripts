@@ -1,2 +1,3 @@
-# scripts
-Maintenance scripts and others
+# Appropedia scripts
+
+Maintenance scripts and others.
