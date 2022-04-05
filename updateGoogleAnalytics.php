@@ -34,9 +34,11 @@ class UpdateGoogleAnalytics extends Maintenance {
 			global $wgArticlePath;
 			$page = str_replace( '$1', $title, $wgArticlePath );
 			$pageviews = GoogleAnalyticsMetricsHooks::getMetric( [ 'page' => $page, 'metric' => 'pageviews' ] );
-			if ( !is_int( $pageviews ) ) {
+			if ( !is_numeric( $pageviews ) ) {
 				continue;
 			}
+
+			// Add the pageviews of all the redirects
 			foreach ( $Title->getRedirectsHere() as $Redirect ) {
 				$redirect = $Redirect->getPrefixedDBKey();
 				$redirect = str_replace( '$1', $redirect, $wgArticlePath );
