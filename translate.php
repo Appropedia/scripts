@@ -1,8 +1,8 @@
 <?php
 
 // Set paths
+$api = 'https://www.appropedia.org/w/api.php';
 $EasyWiki = '/home/appropedia/EasyWiki/EasyWiki.php';
-$MediaWikiAPI = 'https://www.appropedia.org/w/api.php';
 $GoogleCloudSDK = '/home/appropedia/google-cloud-sdk/bin/gcloud';
 
 // Extract the script options
@@ -11,20 +11,27 @@ list( $title, $language, $user, $pass ) = array_values( $options );
 
 // Initialize EasyWiki
 require_once $EasyWiki;
-$wiki = new EasyWiki( $MediaWikiAPI, $user, $pass );
+$wiki = new EasyWiki( $api, $user, $pass );
 
-// Get the wikitext of the page
-$wikitext = $wiki->getWikitext( $title );
+// Build the translation notice
+$wikitext = '{{Automatic translation';
+$wikitext .= '| page = ' . $title;
+$wikitext .= '| language = ' . $language;
+$wikitext .= '}}';
+//var_dump( $wikitext ); exit; // Uncomment to debug
+
+// Add the wikitext of the page
+$wikitext .= $wiki->getWikitext( $title );
 //var_dump( $wikitext ); exit; // Uncomment to debug
 
 // Convert the wikitext to HTML
-$query = [
+$params = [
 	'action' => 'visualeditor',
 	'paction' => 'parsefragment',
 	'page' => $title,
 	'wikitext' => $wikitext,
 ];
-$html = $wiki->get( $query, 'content' );
+$html = $wiki->post( $params, 'content' );
 //var_dump( $html ); exit; // Uncomment to debug
 
 // Remove unwanted HTML to reduce characters sent to Google Translate
@@ -47,7 +54,7 @@ foreach ( $xPath->query( '//*' ) as $node ) {
 }
 
 // Remove unwanted children
-$parentNodes = '//*[@data-mw]';
+$parentNodes = '//*[@data-mw] and not( contains( @class, "mw-ref" ) )';
 foreach ( $xPath->query( $parentNodes ) as $parentNode ) {
 	while ( $parentNode->hasChildNodes() ) {
 		$parentNode->removeChild( $parentNode->firstChild );
@@ -56,6 +63,17 @@ foreach ( $xPath->query( $parentNodes ) as $parentNode ) {
 
 // Get the reduced HTML
 $html = $DOM->saveHTML();
+//var_dump( $html ); //exit; // Uncomment to debug
+
+// Fix encoding issue caused by template parameters with single quotes
+// @todo Fix encoding issue caused by template parameters with double quotes
+// @note Maybe fix at the wikitext stage
+$html = preg_replace_callback( '/data-mw="(.*?)"/s', function ( $matches ) {
+	$content = $matches[1];
+	$content = str_replace( "'", '&apos;', $content );
+	$content = str_replace( '&quot;', '"', $content );
+	return "data-mw='$content'";
+}, $html );
 //var_dump( $html ); exit; // Uncomment to debug
 
 // Translate the HTML
@@ -63,14 +81,15 @@ $translation = googleTranslate( $html, $language );
 //var_dump( $translation ); exit; // Uncomment to debug
 
 // Save the translated HTML
-$query = [
+$params = [
 	'formatversion' => 2,
 	'action' => 'visualeditoredit',
 	'paction' => 'save',
 	'page' => "$title/$language",
 	'html' => $translation,
+	'token' => $wiki->getToken()
 ];
-$data = $wiki->post( $query );
+$data = $wiki->post( $params );
 //var_dump( $data ); exit;
 
 /**
