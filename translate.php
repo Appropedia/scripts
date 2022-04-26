@@ -2,6 +2,7 @@
 
 // Set paths
 $api = 'https://www.appropedia.org/w/api.php';
+$rest = 'https://www.appropedia.org/w/rest.php';
 $EasyWiki = '/home/appropedia/EasyWiki/EasyWiki.php';
 $GoogleCloudSDK = '/home/appropedia/google-cloud-sdk/bin/gcloud';
 
@@ -14,14 +15,38 @@ require_once $EasyWiki;
 $wiki = new EasyWiki( $api, $user, $pass );
 
 // Build the translation notice
+$translatedTitle = googleTranslate( $title, $language );
+$info = $wiki->getInfo( $title );
+$from = $info['pagelanguage'];
+$revision =  $info['lastrevid'];
 $wikitext = '{{Automatic translation';
+$wikitext .= '| title = ' . $translatedTitle;
 $wikitext .= '| page = ' . $title;
-$wikitext .= '| language = ' . $language;
+$wikitext .= '| revision = ' . $revision;
+$wikitext .= '| from = ' . $from;
+$wikitext .= '| to = ' . $language;
 $wikitext .= '}}';
 //var_dump( $wikitext ); exit; // Uncomment to debug
 
 // Add the wikitext of the page
 $wikitext .= $wiki->getWikitext( $title );
+//var_dump( $wikitext ); exit; // Uncomment to debug
+
+// Fix self-links
+$wikitext = str_replace( "[[$title|", "[[$title/$language|", $wikitext );
+$wikitext = str_replace( "[[$title#", "[[$title/$language#", $wikitext );
+$wikitext = str_replace( "[[$title]]", "[[$title/$language]]", $wikitext );
+//var_dump( $wikitext ); exit; // Uncomment to debug
+
+// Adjust page data
+$data = file_get_contents( $rest . '/semantic/v0/' . str_replace( ' ', '_', $title ) );
+$json = json_decode( $data, true );
+$authors = $json['Page authors'];
+$wikitext = preg_replace( "/\n\| ?authors ?= ?[^\n]*/", '', $wikitext );
+$wikitext = str_replace( '{{Page data', "{{Page data\n| authors = $authors", $wikitext );
+$wikitext = preg_replace( "/\n\| ?language ?= ?$from/", '', $wikitext );
+$wikitext = str_replace( '{{Page data', "{{Page data\n| language = $language", $wikitext );
+$wikitext = str_replace( '{{Page data', "{{Page data\n| derivative-of = $title", $wikitext );
 //var_dump( $wikitext ); exit; // Uncomment to debug
 
 // Convert the wikitext to HTML
