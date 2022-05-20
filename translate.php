@@ -14,21 +14,8 @@ list( $title, $language, $user, $pass ) = array_values( $options );
 require_once $EasyWiki;
 $wiki = new EasyWiki( $api, $user, $pass );
 
-// Build the translation notice
-$translatedTitle = googleTranslate( $title, $language );
-$info = $wiki->getInfo( $title );
-$from = $info['pagelanguage'];
-$revision =  $info['lastrevid'];
-$wikitext = '{{Automatic translation';
-$wikitext .= '| title = ' . $translatedTitle;
-$wikitext .= '| page = ' . $title;
-$wikitext .= '| revision = ' . $revision;
-$wikitext .= '| from = ' . $from;
-$wikitext .= '| to = ' . $language;
-$wikitext .= '}}';
-//var_dump( $wikitext ); exit; // Uncomment to debug
-
-// Add the wikitext of the page
+// Get the wikitext
+$wikitext = "{{Automatic translation}}\n";
 $wikitext .= $wiki->getWikitext( $title );
 //var_dump( $wikitext ); exit; // Uncomment to debug
 
@@ -42,11 +29,15 @@ $wikitext = str_replace( "[[$title]]", "[[$title/$language]]", $wikitext );
 $data = file_get_contents( $rest . '/semantic/v0/' . str_replace( ' ', '_', $title ) );
 $json = json_decode( $data, true );
 $authors = $json['Page authors'];
-$wikitext = preg_replace( "/\n\| ?authors ?= ?[^\n]*/", '', $wikitext );
-$wikitext = str_replace( '{{Page data', "{{Page data\n| authors = $authors", $wikitext );
-$wikitext = preg_replace( "/\n\| ?language ?= ?$from/", '', $wikitext );
-$wikitext = str_replace( '{{Page data', "{{Page data\n| language = $language", $wikitext );
-$wikitext = str_replace( '{{Page data', "{{Page data\n| derivative-of = $title", $wikitext );
+$translatedTitle = googleTranslate( $title, $language );
+$wikitext = preg_replace( "/\n\| ?authors ?= ?[^\n]*/", '', $wikitext ); // Remove previous authors
+$wikitext = preg_replace( "/\n\| ?derivative-of ?= ?[^\n]*/", '', $wikitext ); // Remove previous derivative-of
+$wikitext = preg_replace( "/\n\| ?language ?= ?[^\n]*/", '', $wikitext ); // Remove previous language
+$wikitext = preg_replace( "/\n\| ?title ?= ?[^\n]*/", '', $wikitext ); // Remove previous display title
+$wikitext = str_replace( '{{Page data', "{{Page data\n| authors = $authors", $wikitext ); // Add authors
+$wikitext = str_replace( '{{Page data', "{{Page data\n| derivative-of = $title", $wikitext ); // Add derivative-of
+$wikitext = str_replace( '{{Page data', "{{Page data\n| language = $language", $wikitext ); // Add language
+$wikitext = str_replace( '{{Page data', "{{Page data\n| title = $translatedTitle", $wikitext ); // Add display title
 //var_dump( $wikitext ); exit; // Uncomment to debug
 
 // Convert the wikitext to HTML
@@ -61,7 +52,9 @@ $html = $wiki->post( $params, 'content' );
 
 // Remove unwanted HTML to reduce characters sent to Google Translate
 $DOM = new DOMDocument;
+libxml_use_internal_errors( true ); // Temporarily disable error reporting because DOMDocument complains about HTML5 tags
 $DOM->loadHTML( $html );
+libxml_clear_errors();
 $xPath = new DomXPath( $DOM );
 
 // Remove unwanted nodes
@@ -79,7 +72,7 @@ foreach ( $xPath->query( '//*' ) as $node ) {
 }
 
 // Remove unwanted children
-$parentNodes = '//*[@data-mw] and not( contains( @class, "mw-ref" ) )';
+$parentNodes = '//*[ @data-mw and not( contains( @class, "mw-ref" ) ) ]';
 foreach ( $xPath->query( $parentNodes ) as $parentNode ) {
 	while ( $parentNode->hasChildNodes() ) {
 		$parentNode->removeChild( $parentNode->firstChild );
@@ -88,10 +81,10 @@ foreach ( $xPath->query( $parentNodes ) as $parentNode ) {
 
 // Get the reduced HTML
 $html = $DOM->saveHTML();
-//var_dump( $html ); //exit; // Uncomment to debug
+//var_dump( $html ); exit; // Uncomment to debug
 
-// Fix encoding issue caused by template parameters with single quotes
-// @todo Fix encoding issue caused by template parameters with double quotes
+// Ugly hack to fix encoding issue when template parameters have single quotes
+// @todo Also fix encoding issue when template parameters have double quotes
 // @note Maybe fix at the wikitext stage
 $html = preg_replace_callback( '/data-mw="(.*?)"/s', function ( $matches ) {
 	$content = $matches[1];
