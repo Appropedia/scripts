@@ -3,7 +3,7 @@
  * This script gets the pageviews for each page from Google Analytics
  * and stores it in the database for later use
  * This script requires Extension:GoogleAnalyticsMetrics and Extension:Metadata
- * This script is run once a month by a cronjob
+ * This script is designed to be run once a month via cronjob
  */
 
 require_once __DIR__ . '/../w/maintenance/Maintenance.php';
@@ -28,7 +28,7 @@ class UpdateGoogleAnalytics extends Maintenance {
 
 			// Don't abuse Google Analytics
 			// https://developers.google.com/analytics/devguides/reporting/core/v4/limits-quotas#analytics_reporting_api_v4
-			sleep( 10 );
+			sleep( 5 );
 
 			// Query Google Analytics
 			global $wgArticlePath;
