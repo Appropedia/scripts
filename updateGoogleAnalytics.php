@@ -2,7 +2,8 @@
 /**
  * This script gets the pageviews for each page from Google Analytics
  * and stores it in the database for later use
- * This script requires Extension:GoogleAnalyticsMetrics and Extension:Metadata
+ * This script requires Extension:GoogleAnalyticsMetrics to get the pageviews
+ * and Extension:Metadata to store them and then use them
  * This script is designed to be run once a month via cronjob
  */
 
@@ -27,8 +28,9 @@ class UpdateGoogleAnalytics extends Maintenance {
 			}
 
 			// Don't abuse Google Analytics
-			// https://developers.google.com/analytics/devguides/reporting/core/v4/limits-quotas#analytics_reporting_api_v4
-			sleep( 5 );
+			// according to https://developers.google.com/analytics/devguides/reporting/core/v4/limits-quotas#reporting_apis
+			// we can do 10,000 requests per day, or one every 10 seconds
+			sleep( 10 );
 
 			// Query Google Analytics
 			global $wgArticlePath;
@@ -39,7 +41,9 @@ class UpdateGoogleAnalytics extends Maintenance {
 			}
 
 			// Add the pageviews of all the redirects
+			// some pages lived a long time under another title so this is relevant
 			foreach ( $Title->getRedirectsHere() as $Redirect ) {
+				sleep( 10 ); // Again, don't abuse Google Analytics
 				$redirect = $Redirect->getPrefixedDBKey();
 				$redirect = str_replace( '$1', $redirect, $wgArticlePath );
 				$redirectviews = GoogleAnalyticsMetricsHooks::getMetric( [ 'page' => $redirect, 'metric' => 'pageviews' ] );

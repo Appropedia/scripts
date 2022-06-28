@@ -1,10 +1,14 @@
 <?php
 
+require 'vendor/autoload.php';
+
+use Google\Cloud\Translate\V3\TranslationServiceClient;
+
 // Set paths
 $api = 'https://www.appropedia.org/w/api.php';
 $rest = 'https://www.appropedia.org/w/rest.php';
 $EasyWiki = '/home/appropedia/EasyWiki/EasyWiki.php';
-$GoogleCloudSDK = '/home/appropedia/google-cloud-sdk/bin/gcloud';
+$wgGoogleCloudKey = '/home/appropedia/google-cloud-certificate-translate.json';
 
 // Extract the script options
 $options = getopt( 't:l:u:p:', [ 'title:', 'language:', 'user:', 'pass:' ] );
@@ -58,7 +62,7 @@ libxml_clear_errors();
 $xPath = new DomXPath( $DOM );
 
 // Remove unwanted nodes
-$unwantedNodes = '//style';
+$unwantedNodes = '//style | //link';
 foreach ( $xPath->query( $unwantedNodes ) as $unwantedNode ) {
 	$unwantedNode->parentNode->removeChild( $unwantedNode );
 }
@@ -75,7 +79,14 @@ foreach ( $xPath->query( '//*' ) as $node ) {
 $parentNodes = '//*[ @data-mw and not( contains( @class, "mw-ref" ) ) ]';
 foreach ( $xPath->query( $parentNodes ) as $parentNode ) {
 	while ( $parentNode->hasChildNodes() ) {
-		$parentNode->removeChild( $parentNode->firstChild );
+		$child = $parentNode->firstChild;
+		if ( method_exists( $child, 'getAttribute' ) ) {
+			$class = $child->getAttribute( 'class' );
+			if ( strpos( $class, 'mw-reference' ) !== false ) {
+				break;
+			}
+		}
+		$parentNode->removeChild( $child );
 	}
 }
 
@@ -85,7 +96,7 @@ $html = $DOM->saveHTML();
 
 // Ugly hack to fix encoding issue when template parameters have single quotes
 // @todo Also fix encoding issue when template parameters have double quotes
-// @note Maybe fix at the wikitext stage
+// @note Maybe fix at the wikitext stage?
 $html = preg_replace_callback( '/data-mw="(.*?)"/s', function ( $matches ) {
 	$content = $matches[1];
 	$content = str_replace( "'", '&apos;', $content );
@@ -114,42 +125,20 @@ $data = $wiki->post( $params );
  * Translate HTML using Google Translate
  */
 function googleTranslate( $html, $targetLanguageCode ) {
-	global $GoogleCloudSDK;
+	global $wgGoogleCloudKey;
 
-	// Get the authorization token
-	$token = exec( "$GoogleCloudSDK auth print-access-token" );
-
-	// Build the request
-	$payload = json_encode( [
-		'target_language_code' => $targetLanguageCode,
-		'contents' => $html
+	$GoogleTranslateClient = new TranslationServiceClient( [
+		'credentials' => $wgGoogleCloudKey
 	] );
 
-	$headers = [
-		"Authorization: Bearer $token",
-		'Content-Type: application/json'
-	];
-
-	// Do the request
-	$curl = curl_init( 'https://translation.googleapis.com/v3beta1/projects/wikimix/locations/global:translateText' );
-	curl_setopt( $curl, CURLOPT_POST, true );
-	curl_setopt( $curl, CURLOPT_POSTFIELDS, $payload );
-	curl_setopt( $curl, CURLOPT_HTTPHEADER, $headers );
-	curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true );
-	$json = curl_exec( $curl );
-	curl_close( $curl );
-
-	// Process the output and return it
-	$data = json_decode( $json );
-	if ( ! property_exists( $data, 'translations' ) ) {
-		var_dump( $data );
-		exit;
+	try {
+		$contents = [ $html ];
+		$formattedParent = $GoogleTranslateClient->locationName( 'appropedia-348518', 'global' );
+		$response = $GoogleTranslateClient->translateText( $contents, $targetLanguageCode, $formattedParent );
+		foreach ( $response->getTranslations() as $translation ) {
+			return $translation->getTranslatedText();
+		}
+	} finally {
+		$GoogleTranslateClient->close();
 	}
-
-	// Unwrap and return the translation
-	$translation = $data->translations;
-	$translation = array_shift( $translation );
-	$translation = $translation->translatedText;
-	$translation = html_entity_decode( $translation, ENT_QUOTES, 'UTF-8' );
-	return $translation;
 }
