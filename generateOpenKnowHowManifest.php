@@ -5,6 +5,7 @@ if ( !array_key_exists( 'title', $_GET ) ) {
 }
 $titlee = $_GET['title']; // Extra "e" means "encoded"
 $title = str_replace( '_', ' ', $titlee );
+$encodedTitle = urlencode($titlee);
 
 // Timestamp
 $content = file_get_contents("https://www.appropedia.org/w/api.php?action=query&prop=revisions&titles=$titlee&rvslots=*&rvprop=content|timestamp&formatversion=latest&format=json");
@@ -16,7 +17,7 @@ if ( !isset( $pageid ) ) {
 $timestamp = substr($json_values["query"]["pages"][0]["revisions"][0]["timestamp"], 0, -10);
 
 // Semantic properties
-$properties = file_get_contents( "https://www.appropedia.org/w/rest.php/semantic/v0/$titlee" );
+$properties = file_get_contents( "https://www.appropedia.org/w/rest.php/semantic/v0/$encodedTitle" );
 $properties = json_decode( $properties, true );
 $keywords       = $properties['Keywords'] ?? '';
 $pageAuthors    = $properties['Page authors'] ?? '';
@@ -53,49 +54,6 @@ $version = file_get_contents("https://www.appropedia.org/w/api.php?action=query&
 $version = json_decode( $version, true );
 $version = count( array_shift( $version["query"]["pages"] )["revisions"] );
 
-// Feed a comma-separated list of authors.
-// function getAuthorNames($authorList) {
-  // $authorsArray = array_map('trim', explode(",", $authorList));
-  // $authorsArray = array_map('trim', explode(",", $authors));
-  
-  // $authorsUsers = preg_grep("/^User:/", $authorsArray);
-  // $authorsNotUsers = preg_grep("/^User:/", $authorsArray, PREG_GREP_INVERT);
-  // echo json_encode($authors);
-
-  // $usersNames = "{{Databox/name|" . implode("}}--{{Databox/name|", $authorsUsers) . "}}";
-  // $jsonPublishers = file_get_contents("https://www.appropedia.org/w/api.php?action=query&action=expandtemplates&text=$usersNames&prop=wikitext&format=json");
-  // $usersNames = json_decode($jsonPublishers, true);
-  // $usersNames = $usersNames["expandtemplates"]["wikitext"];
-  // $usersNames = explode("--", $usersNames);
-  // $publisherNames = array();
-  // foreach ($usersNames as $k=>$p){
-    // if (substr($usersNames[0], 0, 2) == "[["){
-      // $p = trim(trim($p, "[]"), "[]");
-      // preg_match("/(?<=\|).*/", $p, $match);
-      // $publisherNames[$k][0] = $authorsUsers[$k];
-      // $publisherNames[$k][1] = $match[0];
-    // } else {
-      // $publisherNames[$k][0] = $p;
-    // }
-  // }
-  
-  // if ( isset( $publisherNames[0] ) && $publisherNames[0] != '' ){
-    // $contactText = 
-        // "  name: " 
-      // . $publisherNames[0][1] . "\n"
-      // . "  social:\n"
-      // . "    - platform: Appropedia\n"
-      // . "      user-handle: " . $publisherNames[0][0] . "\n";
-  // }
-  
-  // $contributorsUsers = array_shift($publisherNames);
-  
-  // if ( isset(array_shift($contributorsUsers)) | isset($authorsNotUsers) ){
-    
-  // }
-  // return $authorsNotUsers;
-// }
-
 // Build the YAML file
 header( "Content-Type: application/x-yaml" );
 header( "Content-Disposition: attachment;filename=$titlee.yaml" );
@@ -120,7 +78,7 @@ description: $extract" ) : '' ) . ( $uses ? ( "
 intended-use: $uses" ) : '' ) . ( $keywords ? ( '
 keywords:
   - ' . str_replace( ',', "\n  -", $keywords ) ) : '' ) . "
-project-link: https://www.appropedia.org/$titlee
+project-link: https://www.appropedia.org/$encodedTitle
 contact:
   name: $nameCreated
   social:
@@ -142,7 +100,7 @@ licensor:
   name: . $nameCreated" . ( $affiliations ? "
   affiliation: $affiliations" : '' ) . "
   contact: https://www.appropedia.org/" . str_replace( ' ', '_', $userCreated ) . "
-  documentation-home: https://www.appropedia.org/$titlee
+  documentation-home: https://www.appropedia.org/$encodedTitle
 
 # User-defined fields" . ( $sdg ? "
 sustainable-development-goals: $sdg" : '' );
