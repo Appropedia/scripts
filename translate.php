@@ -3,11 +3,11 @@
 require 'vendor/autoload.php';
 
 use Google\Cloud\Translate\V3\TranslationServiceClient;
+use Sophivorus\EasyWiki;
 
 // Set paths
 $api = 'https://www.appropedia.org/w/api.php';
 $rest = 'https://www.appropedia.org/w/rest.php';
-$EasyWiki = '/home/appropedia/EasyWiki/EasyWiki.php';
 $wgGoogleCloudKey = '/home/appropedia/google-cloud-certificate-translate.json';
 
 // Extract the script options
@@ -15,7 +15,6 @@ $options = getopt( 't:l:u:p:', [ 'title:', 'language:', 'user:', 'pass:' ] );
 list( $title, $language, $user, $pass ) = array_values( $options );
 
 // Initialize EasyWiki
-require_once $EasyWiki;
 $wiki = new EasyWiki( $api, $user, $pass );
 
 // Get the wikitext
