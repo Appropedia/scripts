@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This script gets the pageviews for each page from Google Analytics
  * and stores it in the database for later use

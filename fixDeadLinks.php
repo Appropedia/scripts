@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This script replaces dead links for the latest archive.org snapshot
  */

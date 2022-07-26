@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This script looks at a page's history 
  * to aggregate the contributions of 

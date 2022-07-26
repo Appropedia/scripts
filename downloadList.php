@@ -1,9 +1,9 @@
 <?php
+
 /**
- * This script exports a simple wikitext list
- * as a standalone txt file
+ * This script exports a simple wikitext list as a standalone txt file
  */
- 
+
 if ( !array_key_exists( 'title', $_GET ) ) {
 	exit( 'Title required' );
 }
