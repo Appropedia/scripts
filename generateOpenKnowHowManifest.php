@@ -19,8 +19,8 @@ $timestamp = substr($json_values["query"]["pages"][0]["revisions"][0]["timestamp
 // Semantic properties
 $properties = file_get_contents( "https://www.appropedia.org/w/rest.php/semantic/v0/$encodedTitle" );
 $properties = json_decode( $properties, true );
-$keywords       = $properties['Page keywords'] ?? '';
-$pageAuthors    = $properties['Page authors'] ?? '';
+$keywords       = $properties['Keywords'] ?? '';
+$authors		    = $properties['Authors'] ?? '';
 $projectAuthors = $properties['Project authors'] ?? '';
 $status         = $properties['Status'] ?? '';
 $made           = $properties['Made'] ?? '';
