@@ -4,7 +4,7 @@
  * This script gets the pageviews for each page from Google Analytics
  * and stores it in the database for later use
  * This script requires Extension:Metadata to store the data and then use it
- * This script is designed to be run once a month via cronjob
+ * This script is designed to run once a month via cronjob
  */
 
 // Load dependencies
@@ -19,7 +19,7 @@ class UpdateGoogleAnalytics extends Maintenance {
 		// Connect to Google Analytics
 		$client = new Google_Client();
 		$client->setApplicationName( 'Appropedia Analytics' );
-		$client->setAuthConfig( '/home/appropedia/google-cloud-certificate-analytics.json' );
+		$client->setAuthConfig( '/home/appropedia/google-cloud-credentials.json' );
 		$client->setScopes( [ 'https://www.googleapis.com/auth/analytics.readonly' ] );
 		$analytics = new Google_Service_Analytics( $client );
 
