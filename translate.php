@@ -2,22 +2,27 @@
 
 require 'vendor/autoload.php';
 
-use Google\Cloud\Translate\V3\TranslationServiceClient;
 use Sophivorus\EasyWiki;
+use Google\Cloud\Translate\V3\TranslationServiceClient;
 
-// Set paths
+// Config
 $api = 'https://www.appropedia.org/w/api.php';
 $rest = 'https://www.appropedia.org/w/rest.php';
-$wgGoogleCloudKey = '/home/appropedia/google-cloud-certificate-translate.json';
+$botUser = 'Bot@Scripts';
+$botPass = '7c4gi18mctees0ehvt37spibiiks04ro';
+$googleCloudCredentials = '/home/appropedia/google-cloud-credentials.json';
+$googleCloudProject = 'appropedia-348518';
 
-// Extract the script options
-$options = getopt( 't:l:u:p:', [ 'title:', 'language:', 'user:', 'pass:' ] );
-list( $title, $language, $user, $pass ) = array_values( $options );
+// Get script options
+$options = getopt( 't:l:', [ 'title:', 'language:' ] );
+list( $title, $language ) = array_values( $options );
+$title or exit( '--title parameter required' . PHP_EOL );
+$language or exit( '--language parameter required' . PHP_EOL );
 
 // Initialize EasyWiki
-$wiki = new EasyWiki( $api, $user, $pass );
+$wiki = new EasyWiki( $api );
 
-// Get the wikitext
+// Get wikitext
 $wikitext = "{{Automatic translation}}\n";
 $wikitext .= $wiki->getWikitext( $title );
 //var_dump( $wikitext ); exit; // Uncomment to debug
@@ -31,8 +36,9 @@ $wikitext = str_replace( "[[$title]]", "[[$title/$language]]", $wikitext );
 // Adjust page data
 $data = file_get_contents( $rest . '/semantic/v0/' . str_replace( ' ', '_', $title ) );
 $json = json_decode( $data, true );
-$authors = $json['Page authors'];
+$authors = $json['Authors'];
 $translatedTitle = googleTranslate( $title, $language );
+// @todo The first regexes affect {{Project data}} too
 $wikitext = preg_replace( "/\n\| ?authors ?= ?[^\n]*/", '', $wikitext ); // Remove previous authors
 $wikitext = preg_replace( "/\n\| ?derivative-of ?= ?[^\n]*/", '', $wikitext ); // Remove previous derivative-of
 $wikitext = preg_replace( "/\n\| ?language ?= ?[^\n]*/", '', $wikitext ); // Remove previous language
@@ -43,7 +49,7 @@ $wikitext = str_replace( '{{Page data', "{{Page data\n| language = $language", $
 $wikitext = str_replace( '{{Page data', "{{Page data\n| title = $translatedTitle", $wikitext ); // Add display title
 //var_dump( $wikitext ); exit; // Uncomment to debug
 
-// Convert the wikitext to HTML
+// Convert wikitext to HTML
 $params = [
 	'action' => 'visualeditor',
 	'paction' => 'parsefragment',
@@ -53,8 +59,8 @@ $params = [
 $html = $wiki->post( $params, 'content' );
 //var_dump( $html ); exit; // Uncomment to debug
 
-// Ugly hack to fix encoding issue when template parameters have single quotes
-// @todo Also fix encoding issue when template parameters have double quotes
+// Ugly hack to fix nasty encoding issue when template parameters include single quotes
+// @todo Also fix when template parameters include double quotes
 // @note Maybe fix at the wikitext stage?
 $html = preg_replace_callback( '/data-mw="(.*?)">/s', function ( $matches ) {
 	$content = $matches[1];
@@ -104,7 +110,7 @@ foreach ( $xPath->query( $parentNodes ) as $parentNode ) {
 	}
 }
 
-// Translate some template parameters
+// Translate template parameters
 $translatableParams = [ 'title', 'text', 'content' ];
 $nodes = '//*[ @data-mw ]';
 foreach ( $xPath->query( $nodes ) as $node ) {
@@ -124,56 +130,55 @@ foreach ( $xPath->query( $nodes ) as $node ) {
 	$node->setAttribute( 'data-mw', $data );
 }
 
-// Get the reduced HTML
+// Get reduced HTML
 $html = $DOM->saveHTML();
 $html = html_entity_decode( $html );
-if ( strlen( $html ) > 30000 ) {
-	echo 'Page too long' . PHP_EOL; exit;
-}
+$html = preg_replace( '/^<!DOCTYPE[^>]+>/', '', $html );
+$html = preg_replace( '/<\/?html>/', '', $html );
+$html = preg_replace( '/<\/?body>/', '', $html );
+$html = preg_replace( '/<span><\/span>/', '', $html );
+$html = trim( $html );
 //var_dump( $html ); exit; // Uncomment to debug
 
-// Translate the HTML
-$translation = googleTranslate( $html, $language );
-//var_dump( $translation ); exit; // Uncomment to debug
+// Get main translation
+$html = googleTranslate( $html, $language );
+//var_dump( $html ); exit; // Uncomment to debug
 
-// Save the translated HTML
+// Save translated HTML
 $params = [
 	'formatversion' => 2,
 	'action' => 'visualeditoredit',
 	'paction' => 'save',
 	'page' => "$title/$language",
-	'html' => $translation,
+	'html' => $html,
 	'token' => $wiki->getToken()
 ];
+$wiki->login( $botUser, $botPass );
 $data = $wiki->post( $params );
 //var_dump( $data ); exit;
 
-/**
- * Translate HTML using Google Translate
- */
-function googleTranslate( $html, $targetLanguageCode ) {
-	global $wgGoogleCloudKey;
+function googleTranslate( $html, $language ) {
+	global $googleCloudCredentials, $googleCloudProject;
 
-	$GoogleTranslateClient = new TranslationServiceClient( [
-		'credentials' => $wgGoogleCloudKey
-	] );
-
-	// Keep track of the translated characters
+	// Check limits
+	$length = strlen( $html );
+	if ( $length > 30000 ) {
+		exit( 'Page too long' . PHP_EOL );
+	}
 	$chars = file_get_contents( 'translate' );
-	$chars += strlen( $html );
-	if ( $chars > 5000000 ) {
-		return;
+	$chars += $length;
+	if ( $chars > 490000 ) {
+		exit( 'Monthly quota reached' . PHP_EOL );
 	}
 	file_put_contents( 'translate', $chars );
 
-	try {
-		$contents = [ $html ];
-		$formattedParent = $GoogleTranslateClient->locationName( 'appropedia-348518', 'global' );
-		$response = $GoogleTranslateClient->translateText( $contents, $targetLanguageCode, $formattedParent );
-		foreach ( $response->getTranslations() as $translation ) {
-			return $translation->getTranslatedText();
-		}
-	} finally {
-		$GoogleTranslateClient->close();
+	// Translate HTML
+	$GoogleTranslateClient = new TranslationServiceClient( [ 'credentials' => $googleCloudCredentials ] );
+	$GoogleFormattedParent = $GoogleTranslateClient->locationName( $googleCloudProject, 'global' );
+	$response = $GoogleTranslateClient->translateText( [ $html ], $language, $GoogleFormattedParent );
+	$GoogleTranslateClient->close();
+	foreach ( $response->getTranslations() as $translation ) {
+		return $translation->getTranslatedText();
 	}
+	
 }
