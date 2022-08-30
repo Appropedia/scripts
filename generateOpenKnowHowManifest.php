@@ -35,7 +35,7 @@ if ( !$timestamp ) {
 }
 
 // Semantic properties
-$properties = file_get_contents( "https://www.appropedia.org/w/rest.php/semantic/v0/$titlee" );
+$properties = file_get_contents( 'https://www.appropedia.org/w/rest.php/semantic/v0/' . urlencode( $titlee ) );
 $properties = json_decode( $properties, true );
 $keywords       = $properties['Keywords'] ?? '';
 $authors		    = $properties['Authors'] ?? '';
@@ -104,7 +104,7 @@ $version = count( $revisions );
 header( "Content-Type: application/x-yaml" );
 header( "Content-Disposition: attachment; filename = $titlee.yaml" );
 
-echo "<pre>
+echo "
 # Open know-how manifest 1.0
 # The content of this manifest file is licensed under a Creative Commons Attribution 4.0 International License. 
 # Licenses for modification and distribution of the hardware, documentation, source-code, etc are stated separately.
