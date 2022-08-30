@@ -1,23 +1,42 @@
 <?php
 
+/**
+ * This script takes a project title
+ * and generates an Open Know How Manifest
+ */
+
+require 'vendor/autoload.php';
+
+use Sophivorus\EasyWiki;
+
 if ( !array_key_exists( 'title', $_GET ) ) {
 	exit( 'Title required' );
 }
 $titlee = $_GET['title']; // Extra "e" means "encoded"
 $title = str_replace( '_', ' ', $titlee );
-$encodedTitle = urlencode($titlee);
+$title = stripcslashes( $title );
+
+// Connect to the API
+$wiki = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
 
 // Timestamp
-$content = file_get_contents("https://www.appropedia.org/w/api.php?action=query&prop=revisions&titles=$titlee&rvslots=*&rvprop=content|timestamp&formatversion=latest&format=json");
-$json_values = json_decode($content, true);
-$pageid = $json_values["query"]["pages"][0]["pageid"];
-if ( !isset( $pageid ) ) {
-	exit( 'Request must exist' );
+$params = [
+	'titles' => $title,
+	'prop' => 'revisions',
+	'rvslots' => '*',
+	'rvprop' => 'timestamp',
+];
+$result =  $wiki->query( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$timestamp = $wiki->find( 'timestamp', $result );
+$timestamp = substr( $timestamp, 0, -10 );
+
+if ( !$timestamp ) {
+	exit( 'Page not found' );
 }
-$timestamp = substr($json_values["query"]["pages"][0]["revisions"][0]["timestamp"], 0, -10);
 
 // Semantic properties
-$properties = file_get_contents( "https://www.appropedia.org/w/rest.php/semantic/v0/$encodedTitle" );
+$properties = file_get_contents( "https://www.appropedia.org/w/rest.php/semantic/v0/$titlee" );
 $properties = json_decode( $properties, true );
 $keywords       = $properties['Keywords'] ?? '';
 $authors		    = $properties['Authors'] ?? '';
@@ -30,35 +49,63 @@ $license        = $properties['License'] ?? 'CC-BY-SA-4.0';
 $sdg            = $properties['SDG'] ?? '';
 
 // Extract
-$extract = file_get_contents("https://www.appropedia.org/w/api.php?action=query&prop=extracts&exsentences=5&exlimit=1&titles=$titlee&formatversion=latest&explaintext=1&format=json");
-$extract = json_decode($extract, true);
-$extract = trim(str_replace("\n", " ", $extract["query"]["pages"][0]["extract"]), 200);
+$params = [
+	'titles' => $title,
+	'prop' => 'extracts',
+	'exintro' => true,
+	'exsentences' => 5,
+	'exlimit' => 1,
+	'explaintext' => 1,
+];
+$result = $wiki->query( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$extract = $wiki->find( 'extract', $result );
+$extract = trim( str_replace( '\n', ' ', $extract ), 200 );
 
 // Metadata
-$metadata = file_get_contents("https://www.appropedia.org/w/api.php?action=query&title=$titlee&action=expandtemplates&text={{FIRSTREVISIONUSER}}--{{FULLPAGENAME}}--{{PAGELANGUAGE}}--{{FIRSTREVISIONTIMESTAMP}}--{{REALNAME:{{FIRSTREVISIONUSER}}}}&format=json");
-$metadata = json_decode($metadata, true);
-$metadata = $metadata["expandtemplates"]["*"];
-$metadata = explode("--", $metadata);
-$userCreated = "User:" . $metadata[0];
-$dateCreated = preg_replace("/^(\d{4})(\d{2})(\d{2})$/", "$1-$2-$3",  substr($metadata[3], 0, 8));
-$nameCreated = $metadata[4] != "Anonymous1" ? $metadata[4] : $userCreated;
+$params = [
+	'title' => $title,
+	'action' => 'expandtemplates',
+	'prop' => 'wikitext',
+	'text' => '{{FIRSTREVISIONUSER}}--{{FULLPAGENAME}}--{{PAGELANGUAGE}}--{{FIRSTREVISIONTIMESTAMP}}--{{REALNAME:{{FIRSTREVISIONUSER}}}}'
+];
+$result = $wiki->get( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$metadata = $wiki->find( 'wikitext', $result );
+$metadata = explode( '--', $metadata );
+//var_dump( $metadata ); exit; // Uncomment to debug
+$userCreated = 'User:' . $metadata[0];
+$dateCreated = preg_replace( '/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3',  substr( $metadata[3], 0, 8 ) );
+$nameCreated = $metadata[4] === 'Anonymous1' ? $userCreated : $metadata[4];
 $pageLanguage = $metadata[2] ?? 'en';
 
 // Images
-$image = file_get_contents("https://www.appropedia.org/w/api.php?action=query&titles=$titlee&formatversion=latest&prop=pageimages&format=json&pithumbsize=1000");
-$image = json_decode($image, true);
-$image = $image["query"]["pages"][0]["thumbnail"]["source"];
+$params = [
+	'titles' => $title,
+	'prop' => 'pageimages',
+	'pithumbsize' => 1000,
+];
+$result = $wiki->query( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$image = $wiki->find( 'source', $result );
 
 // Revisions
-$version = file_get_contents("https://www.appropedia.org/w/api.php?action=query&titles=$titlee&prop=revisions&rvprop=ids|userid&rvlimit=max&format=json");
-$version = json_decode( $version, true );
-$version = count( array_shift( $version["query"]["pages"] )["revisions"] );
+$params = [
+	'titles' => $title,
+	'prop' => 'revisions',
+	'rvprop' => 'ids|userid',
+	'rvlimit' => 'max',
+];
+$result = $wiki->query( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$revisions = $wiki->find( 'revisions', $result );
+$version = count( $revisions );
 
 // Build the YAML file
-header( "Content-Type: application/x-yaml" );
-header( "Content-Disposition: attachment;filename=$titlee.yaml" );
+//header( "Content-Type: application/x-yaml" );
+//header( "Content-Disposition: attachment; filename = $titlee.yaml" );
 
-echo "
+echo "<pre>
 # Open know-how manifest 1.0
 # The content of this manifest file is licensed under a Creative Commons Attribution 4.0 International License. 
 # Licenses for modification and distribution of the hardware, documentation, source-code, etc are stated separately.
@@ -78,7 +125,7 @@ description: $extract" ) : '' ) . ( $uses ? ( "
 intended-use: $uses" ) : '' ) . ( $keywords ? ( '
 keywords:
   - ' . str_replace( ',', "\n  -", $keywords ) ) : '' ) . "
-project-link: https://www.appropedia.org/$encodedTitle
+project-link: https://www.appropedia.org/$titlee
 contact:
   name: $nameCreated
   social:
@@ -97,10 +144,10 @@ variant-of:
 license:
   documentation: $license
 licensor:
-  name: . $nameCreated" . ( $affiliations ? "
+  name: $nameCreated" . ( $affiliations ? "
   affiliation: $affiliations" : '' ) . "
   contact: https://www.appropedia.org/" . str_replace( ' ', '_', $userCreated ) . "
-  documentation-home: https://www.appropedia.org/$encodedTitle
+  documentation-home: https://www.appropedia.org/$titlee
 
 # User-defined fields" . ( $sdg ? "
 sustainable-development-goals: $sdg" : '' );

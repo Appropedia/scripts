@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * This script returns a JSON array
+ * with the URLs of all the Open Know How Manifests in Appropedia
+ */
+
 require 'vendor/autoload.php';
 
 use Sophivorus\EasyWiki;
@@ -10,7 +15,9 @@ $params = [
 	'action' => 'askargs',
 	'conditions' => 'Type::Project',
 ];
-$results = $wiki->get( $params, 'results' );
+$result = $wiki->get( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$results = $wiki->find( 'results', $result );
 
 $urls = [];
 foreach ( $results as $title => $values ) {
