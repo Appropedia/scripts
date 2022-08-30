@@ -13,8 +13,7 @@ if ( !array_key_exists( 'title', $_GET ) ) {
 	exit( 'Title required' );
 }
 $titlee = $_GET['title']; // Extra "e" means "encoded"
-$title = str_replace( '_', ' ', $titlee );
-$title = stripcslashes( $title );
+$title = stripcslashes( str_replace( '_', ' ', $titlee ) ); // Basic decoding
 
 // Connect to the API
 $wiki = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
