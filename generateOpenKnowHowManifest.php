@@ -101,8 +101,8 @@ $revisions = $wiki->find( 'revisions', $result );
 $version = count( $revisions );
 
 // Build the YAML file
-//header( "Content-Type: application/x-yaml" );
-//header( "Content-Disposition: attachment; filename = $titlee.yaml" );
+header( "Content-Type: application/x-yaml" );
+header( "Content-Disposition: attachment; filename = $titlee.yaml" );
 
 echo "<pre>
 # Open know-how manifest 1.0
