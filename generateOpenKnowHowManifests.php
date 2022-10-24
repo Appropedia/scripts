@@ -5,6 +5,9 @@
  * with the URLs of all the Open Know How Manifests in Appropedia
  */
 
+error_reporting( 0 );
+ini_set( 'display_errors', 0 );
+
 require 'vendor/autoload.php';
 
 use Sophivorus\EasyWiki;

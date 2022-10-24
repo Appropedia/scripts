@@ -5,6 +5,9 @@
  * and generates an Open Know How Manifest
  */
 
+error_reporting( 0 );
+ini_set( 'display_errors', 0 );
+
 require 'vendor/autoload.php';
 
 use Sophivorus\EasyWiki;
@@ -35,8 +38,12 @@ if ( !$timestamp ) {
 }
 
 // Semantic properties
-$properties = file_get_contents( 'https://www.appropedia.org/w/rest.php/semantic/v0/' . urlencode( $titlee ) );
-$properties = json_decode( $properties, true );
+$properties = @file_get_contents( 'https://www.appropedia.org/w/rest.php/semantic/v0/' . urlencode( $titlee ) );
+if ( $properties ) {
+	$properties = json_decode( $properties, true );
+} else {
+	$properties = [];
+}
 $keywords       = $properties['Keywords'] ?? '';
 $authors		    = $properties['Authors'] ?? '';
 $projectAuthors = $properties['Project authors'] ?? '';
@@ -59,7 +66,9 @@ $params = [
 $result = $wiki->query( $params );
 //var_dump( $result ); exit; // Uncomment to debug
 $extract = $wiki->find( 'extract', $result );
-$extract = trim( str_replace( '\n', ' ', $extract ), 200 );
+$extract = str_replace( '"', "'", $extract );
+$extract = str_replace( "\n", ' ', $extract );
+$extract = trim( $extract );
 
 // Metadata
 $params = [
@@ -120,7 +129,7 @@ documentation-language: $pageLanguage
  
 # Properties
 title: $title" . ( $extract ? ( "
-description: $extract" ) : '' ) . ( $uses ? ( "
+description: \"$extract\"" ) : '' ) . ( $uses ? ( "
 intended-use: $uses" ) : '' ) . ( $keywords ? ( '
 keywords:
   - ' . str_replace( ',', "\n  -", $keywords ) ) : '' ) . "
