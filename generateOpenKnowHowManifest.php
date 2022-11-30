@@ -28,16 +28,18 @@ $params = [
 	'rvslots' => '*',
 	'rvprop' => 'timestamp',
 ];
-$result =  $wiki->query( $params );
+$result = $wiki->query( $params );
+if ( !$result ) {
+	exit( 'Page not found' );
+}
 //var_dump( $result ); exit; // Uncomment to debug
 $timestamp = $wiki->find( 'timestamp', $result );
 $timestamp = substr( $timestamp, 0, -10 );
-
 if ( !$timestamp ) {
 	exit( 'Page not found' );
 }
 
-// Semantic properties
+// Get semantic properties
 $properties = @file_get_contents( 'https://www.appropedia.org/w/rest.php/semantic/v0/' . urlencode( $titlee ) );
 if ( $properties ) {
 	$properties = json_decode( $properties, true );
@@ -54,7 +56,7 @@ $instanceOf     = $properties['Instance of'] ?? '';
 $license        = $properties['License'] ?? 'CC-BY-SA-4.0';
 $sdg            = $properties['SDG'] ?? '';
 
-// Extract
+// Get extract
 $params = [
 	'titles' => $title,
 	'prop' => 'extracts',
@@ -70,7 +72,7 @@ $extract = str_replace( '"', "'", $extract );
 $extract = str_replace( "\n", ' ', $extract );
 $extract = trim( $extract );
 
-// Metadata
+// Get metadata
 $params = [
 	'title' => $title,
 	'action' => 'expandtemplates',
@@ -87,7 +89,7 @@ $dateCreated = preg_replace( '/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3',  substr( $
 $nameCreated = $metadata[4] === 'Anonymous1' ? $userCreated : $metadata[4];
 $pageLanguage = $metadata[2] ?? 'en';
 
-// Images
+// Get images
 $params = [
 	'titles' => $title,
 	'prop' => 'pageimages',
@@ -97,7 +99,7 @@ $result = $wiki->query( $params );
 //var_dump( $result ); exit; // Uncomment to debug
 $image = $wiki->find( 'source', $result );
 
-// Revisions
+// Get revisions
 $params = [
 	'titles' => $title,
 	'prop' => 'revisions',
