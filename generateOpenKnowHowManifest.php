@@ -77,10 +77,10 @@ $params = [
 	'title' => $title,
 	'action' => 'expandtemplates',
 	'prop' => 'wikitext',
-	'text' => '{{FIRSTREVISIONUSER}}--{{FULLPAGENAME}}--{{PAGELANGUAGE}}--{{FIRSTREVISIONTIMESTAMP}}--{{REALNAME:{{FIRSTREVISIONUSER}}}}'
+	'text' => '{{FIRSTREVISIONUSER}}--{{FULLPAGENAME}}--{{PAGELANGUAGE}}--{{FIRSTREVISIONTIMESTAMP}}--{{PAGEAUTHORS}}'
 ];
 $result = $wiki->get( $params );
-//var_dump( $result ); exit; // Uncomment to debug
+var_dump( $result ); exit; // Uncomment to debug
 $metadata = $wiki->find( 'wikitext', $result );
 $metadata = explode( '--', $metadata );
 //var_dump( $metadata ); exit; // Uncomment to debug

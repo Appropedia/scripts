@@ -2,9 +2,7 @@
 
 /**
  * This script gets the pageviews for each page from Google Analytics
- * and stores it in the database for later use
- * This script requires Extension:Metadata to store the data and then use it
- * This script is designed to run once a month via cronjob
+ * and updates the hit_counters table of the Extension:HitCounters
  */
 
 // Load dependencies
@@ -12,7 +10,7 @@ require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/../w/maintenance/Maintenance.php';
 use MediaWiki\MediaWikiServices;
 
-class UpdateGoogleAnalytics extends Maintenance {
+class UpdateHitCounters extends Maintenance {
 
 	public function execute() {
 
@@ -43,8 +41,8 @@ class UpdateGoogleAnalytics extends Maintenance {
 
 		// Run for all the non-redirect mainspace pages
 		$lb = MediaWikiServices::getInstance()->getDBLoadBalancer();
-		$dbr = $lb->getConnectionRef( DB_REPLICA );
-		$result = $dbr->select( 'page', 'page_title', [ 'page_namespace' => 0, 'page_is_redirect' => 0 ], __METHOD__, [ 'ORDER BY' => 'page_id DESC' ] );
+		$dbw = $lb->getConnectionRef( DB_PRIMARY );
+		$result = $dbw->select( 'page', 'page_title', [ 'page_namespace' => 0, 'page_is_redirect' => 0 ], __METHOD__, [ 'ORDER BY' => 'page_id DESC' ] );
 		foreach ( $result as $row ) {
 
 			// Don't abuse Google Analytics
@@ -79,15 +77,27 @@ class UpdateGoogleAnalytics extends Maintenance {
 				$pageviews += array_shift( $row );
 			}
 
-			// Store the pageviews in the database
+			// Store the pageviews
 			$id = $Title->getArticleID();
-			Metadata::set( $id, 'GoogleAnalyticsPageviews', $pageviews );
-
+			$dbw->upsert(
+				'hit_counter',
+				[
+					'page_id' => $id,
+					'page_counter' => $pageviews,
+				],
+				[
+					'page_id',
+				],
+				[
+					'page_counter' => $pageviews,
+				]
+			);
+			
 			// Output a log
 			$this->output( $id . ' ' . $Title->getFullURL() . ' -> ' . $pageviews . PHP_EOL );
 		}
 	}
 }
 
-$maintClass = UpdateGoogleAnalytics::class;
+$maintClass = UpdateHitCounters::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
