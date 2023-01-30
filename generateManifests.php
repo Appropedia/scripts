@@ -26,14 +26,30 @@ $results = $api->find( 'results', $result );
 
 // Make manifest for each project
 foreach ( $results as $title => $values ) {
-	echo $title;
+	echo $title . PHP_EOL;
 	$hash = md5( $title );
 	$titlee = str_replace( ' ', '_', $title ); // Basic encoding
 	$url = "https://www.appropedia.org/scripts/generateOpenKnowHowManifest.php?title=$titlee";
 	$manifest = file_get_contents( $url );
 	$manifest = trim( $manifest );
 	file_put_contents( "../manifests/$hash.yaml", $manifest );
-	echo ' .. ok' . PHP_EOL;
-	sleep( 1 ); // Don't overload the server
 	//exit; // Uncomment to debug
+}
+
+// Make list.json index
+$dir = '/home/appropedia/public_html/manifests/';
+if ( is_dir( $dir ) ) {
+	$list = [];
+	if ( $dir_handle = opendir( $dir ) ) {
+		while ( ( $file = readdir( $dir_handle ) ) !== false ) {
+			if ( substr( $file, 0, 1 ) === '.' ) {
+				continue; // Skip hidden files
+			}
+			$url = 'https://www.appropedia.org/manifests/' . $file;
+			$list[] = $url;
+		}
+	}
+	echo 'list.json' . PHP_EOL;
+	$json = json_encode( $list, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT );
+	file_put_contents( $dir . 'list.json', $json );
 }
