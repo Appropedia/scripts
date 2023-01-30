@@ -243,6 +243,7 @@ if ($affiliations){
   } else {
     $responsiblePartyType = "Individual";
     $notResponsiblePartyType = "Organization";   
+    $bindingParty = "";
     $responsibleParty = $firstAuthor;
   }
 
@@ -435,7 +436,7 @@ foreach($OSHWAvalidUses as $key => $value) {
 
 <div class="mb-4 ms-3">
     <label for="bindingParty" class="form-label">If not an Individual, name of Individual with Authority to Bind the Company or Organization</label>
-    <input id="bindingParty" name="bindingParty" type="text" class="form-control" aria-describedby="bindingPartyHelp" value="<?php echo $bindingParty ? $bindingParty : ""; ?>">
+    <input id="bindingParty" name="bindingParty" type="text" class="form-control" aria-describedby="bindingPartyHelp" value="<?php echo isset($bindingParty) ? $bindingParty : ""; ?>">
     <div id="bindingPartyHelp" class="form-text">The first page author is selected by default.</div>
 </div>
 
@@ -445,7 +446,7 @@ foreach($OSHWAvalidUses as $key => $value) {
       <?php 
       $yesCountryMsg = '<option value="' . $country .'" selected>' . $country . '</option>';
       $noCountryMsg = '<option class="readonly" value="" selected readonly>Select a country</option>';
-      echo $country ?  $yesCountryMsg : $noCountryMsg;
+      echo isset($country) ?  $yesCountryMsg : $noCountryMsg;
       foreach ($countries_list as $c){
         echo('<option value="' . $c . '">' . $c . '</option>');
        }?>
@@ -467,19 +468,19 @@ foreach($OSHWAvalidUses as $key => $value) {
 
 <div class="mb-5">
     <label for="city" class="form-label">City/Town/Village</label>
-    <input id="city" name="city" type="text" class="form-control" aria-describedby="cityHelp" value="<?php echo $place ? $place : ""; ?>">
+    <input id="city" name="city" type="text" class="form-control" aria-describedby="cityHelp" value="<?php echo isset($place) ? $place : ""; ?>">
     <div id="cityHelp" class="form-text">City (and other location information) is calculated from the metadata added to the page, if available.</div>
 </div>
 
 <div class="mb-5">
     <label for="state" class="form-label">State/Province/Region</label>
-    <input id="state" name="state" type="text" class="form-control" aria-describedby="stateHelp" value="<?php echo $state ? $state : ""; ?>">
+    <input id="state" name="state" type="text" class="form-control" aria-describedby="stateHelp" value="<?php echo isset($state) ? $state : ""; ?>">
     <div id="stateHelp" class="form-text">State (and other location information) is calculated from the metadata added to the page, if available.</div>
 </div>
 
 <div class="mb-5">
     <label for="postalCode" class="form-label">Zip or postal code</label>
-    <input id="postalCode" name="postalCode" type="text" class="form-control" aria-describedby="postalCodeHelp" value="<?php echo $postCode ? $postCode : ""; ?>">
+    <input id="postalCode" name="postalCode" type="text" class="form-control" aria-describedby="postalCodeHelp" value="<?php echo isset($postCode) ? $postCode : ""; ?>">
     <div id="postalCodeHelp" class="form-text">Postal code (and other location information) is calculated from the metadata added to the page, if available.</div>
 </div>
 
@@ -502,7 +503,7 @@ foreach($OSHWAvalidUses as $key => $value) {
 <div class="mb-5 row">
     <div class="col">
         <label for="projectName" class="form-label">Project name</label>
-        <input id="projectName" name="projectName" type="text" required class="form-control readonly" aria-describedby="projectNameHelp" value="<?php echo $title ? $title : ""; ?>" readonly>
+        <input id="projectName" name="projectName" type="text" required class="form-control readonly" aria-describedby="projectNameHelp" value="<?php echo isset($title) ? $title : ""; ?>" readonly>
         <div id="projectNameHelp" class="form-text">Defaults to the Appropedia project page title. If you wish to rename it, consider moving the page.</div>
 
     </div>
@@ -510,7 +511,7 @@ foreach($OSHWAvalidUses as $key => $value) {
         <label for="projectVersion" class="form-label">Project version</label>
         <div class="input-group">
             <span class="input-group-text">v</span>
-            <input id="projectVersion" name="projectVersion" type="text" class="form-control" aria-describedby="projectVersionHelp" value="<?php echo $version ? $version : ""; ?>">
+            <input id="projectVersion" name="projectVersion" type="text" class="form-control" aria-describedby="projectVersionHelp" value="<?php echo isset($version) ? $version : ""; ?>">
         </div>
         <div id="projectVersionHelp" class="form-text">This displays the edit count at the time of submission. Feel free to override this if you keep a different version control system.</div>
     </div>
@@ -524,13 +525,13 @@ foreach($OSHWAvalidUses as $key => $value) {
 
 <div class="mb-5">
     <label for="projectDescription" class="form-label">Project description</label>
-    <textarea id="projectDescription" name="projectDescription" class="form-control" aria-describedby="projectDescriptionHelp"><?php echo $extract ? $extract : ""; ?></textarea>
+    <textarea id="projectDescription" name="projectDescription" class="form-control" aria-describedby="projectDescriptionHelp"><?php echo isset($extract) ? $extract : ""; ?></textarea>
     <div id="projectDescriptionHelp" class="form-text">Provide a brief description of your project (500 characters).</div>
 </div>
 
 <div class="mb-5">
     <label for="projectWebsite" class="form-label">Project website</label>
-    <input id="projectWebsite" name="projectWebsite" type="url" pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?([a-zA-z0-9\-_]+)(.com|.net|.gov|.org)(\/[^\s]*)?" class="form-control" aria-describedby="projectWebsiteHelp" value="<?php echo $URL ? $URL : ""; ?>">
+    <input id="projectWebsite" name="projectWebsite" type="url" pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?([a-zA-z0-9\-_]+)(.com|.net|.gov|.org)(\/[^\s]*)?" class="form-control" aria-describedby="projectWebsiteHelp" value="<?php echo isset($URL) ? $URL : ""; ?>">
     <div id="projectWebsiteHelp" class="form-text">This defaults to Appropedia's URL but you can override it if you want to point to a different documentation page. Include the protocol to your URL (e.g. http:// or https://)</div>
 </div>
 
@@ -563,13 +564,13 @@ foreach($OSHWAvalidUses as $key => $value) {
 
 <div class="mb-5 col">
     <label for="projectKeywords" class="form-label">Project keywords</label>
-    <input id="projectKeywords" name="projectKeywords" type="text" class="form-control" aria-describedby="projectKeywordsHelp" value="<?php echo $keywords ? $keywords : ""; ?>">
-    <div id="projectKeywordsHelp" class="form-text">If you would like your project to be searchable by specific keywords, add them here.</div>
+    <input id="projectKeywords" name="projectKeywords" type="text" class="form-control" aria-describedby="projectKeywordsHelp" value="<?php echo isset($keywords) ? $keywords : ""; ?>">
+    <div id="projectKeywordsHelp" class="form-text">If you would like your project to be searchable by specific keywords, add them here separated by commas.</div>
 </div>
 
 <div class="mb-5">
     <label for="documentationUrl" class="form-label">Where can the documentation be found for your project?</label>
-    <input id="documentationUrl" name="documentationUrl" type="url" pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?([a-zA-z0-9\-_]+)(.com|.net|.gov|.org)(\/[^\s]*)?" class="form-control readonly" aria-describedby="documentationUrlHelp" value="<?php echo $URL ? $URL : ""; ?>" readonly>
+    <input id="documentationUrl" name="documentationUrl" type="url" pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?([a-zA-z0-9\-_]+)(.com|.net|.gov|.org)(\/[^\s]*)?" class="form-control readonly" aria-describedby="documentationUrlHelp" value="<?php echo isset($URL) ? $URL : ""; ?>" readonly>
     <div id="documentationUrlHelp" class="form-text">Defaults to the Appropedia documentation page URL.</div>
 </div>
 
