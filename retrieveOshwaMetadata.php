@@ -1,13 +1,13 @@
 <?php
 
 /**
-	* This script takes a project title
-	* and validates a list of parameters to submit
-	* to the OSHWA Certification API
-	*/
+ * This script takes a project title
+ * and validates a list of parameters to submit
+ * to the OSHWA Certification API
+ */
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting( E_ALL );
+ini_set( 'display_errors', 1 );
 
 require 'vendor/autoload.php';
 
@@ -149,7 +149,7 @@ if ($_POST) {
 	curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($message));
 
 	$post_response = curl_exec($curl);
-	var_dump($post_response);
+	//var_dump($post_response);
 
 	curl_close($curl);
 }
@@ -194,7 +194,7 @@ if ($properties) {
 	$properties = [];
 }
 
-$keywords = (ucwords($properties['Keywords']) ?? '');
+$keywords = ($properties['Keywords'] ?? '');
 $affiliations = ($properties['Affiliations'] ?? '');
 $authors = ($properties['Authors'] ?? '');
 $projectAuthors = ($properties['Project authors'] ?? '');
@@ -229,6 +229,9 @@ $extract = trim($extract);
 if (empty($authors) and !empty($projectAuthors)) {
 	$authors = $projectAuthors;
 }
+
+// Keywords
+$keywords = strtolower($keywords);
 
 $firstAuthor = explode(',', $authors)[0];
 $params = [
