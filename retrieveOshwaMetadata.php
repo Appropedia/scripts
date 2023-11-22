@@ -10,11 +10,9 @@ error_reporting( E_ALL );
 ini_set( 'display_errors', 1 );
 
 require 'vendor/autoload.php';
-
 use Sophivorus\EasyWiki;
 
-// https://stackoverflow.com/questions/36430274/how-to-make-a-post-api-call-in-php
-if ($_POST) {
+if ( $_POST ) {
 	$message = [
 		'responsiblePartyType' => $_POST['responsiblePartyType'],
 		'responsibleParty' => $_POST['responsibleParty'],
@@ -30,30 +28,18 @@ if ($_POST) {
 		'projectName' => $_POST['projectName'],
 		'projectWebsite' => stripcslashes($_POST['projectWebsite']),
 		'projectVersion' => $_POST['projectVersion'],
-		'previousVersions' => [
-			'',
-			'',
-		],
+		'previousVersions' => [ '', '' ],
 		'projectDescription' => $_POST['projectDescription'],
 		'primaryType' => $_POST['primaryType'],
 		'additionalType' => explode(',', $_POST['additionalType']),
 		'projectKeywords' => explode(',', $_POST['projectKeywords']),
 		'citations' => [
-			[
-				'url' => $_POST['citationURL1'],
-				'title' => $_POST['citation1'],
-			],
-			[
-				'url' => $_POST['citationURL2'],
-				'title' => $_POST['citation2'],
-			],
-			[
-				'url' => $_POST['citationURL3'],
-				'title' => $_POST['citation3'],
-			],
+			[ 'url' => $_POST['citationURL1'], 'title' => $_POST['citation1'] ],
+			[ 'url' => $_POST['citationURL2'], 'title' => $_POST['citation2'] ],
+			[ 'url' => $_POST['citationURL3'], 'title' => $_POST['citation3'] ]
 		],
 		'documentationUrl' => $_POST['documentationUrl'],
-		'availableFileFormat' => isset($_POST['availableFileFormat']) ? 'true' : 'false',
+		'availableFileFormat' => isset( $_POST['availableFileFormat'] ) ? 'true' : 'false',
 		'hardwareLicense' => $_POST['hardwareLicense'] ? $_POST['hardwareLicense'] : 'Other',
 		'softwareLicense' => $_POST['softwareLicense'] ? $_POST['softwareLicense'] : 'No software',
 		'documentationLicense' => $_POST['documentationLicense'],
@@ -112,101 +98,74 @@ if ($_POST) {
 		'agreementTerms' => $_POST['agreementTerms'] == 1 ? 'true' : 'false',
 		'parentName' => $_POST['parentName'],
 	];
-	// echo '<pre>'; print_r(json_encode($message, JSON_PRETTY_PRINT)); echo '</pre><br><hr><br>'; // For debugging the API message
-	// exit;
-} // end if
+	//echo '<pre>'; print_r( json_encode( $message, JSON_PRETTY_PRINT ) ); exit; // Uncomment to debug
 
-// https://stackoverflow.com/questions/35000754/array-2-string-conversion-while-using-curlopt-postfields
-function build_post_fields($data, $existingKeys='', &$returnArray=[])
-{
-	if (($data instanceof CURLFile) or !(is_array($data) or is_object($data))) {
-		$returnArray[$existingKeys] = $data;
-		return $returnArray;
-	} else {
-		foreach ($data as $key => $item) {
-			build_post_fields($item, $existingKeys ? $existingKeys."[$key]" : $key, $returnArray);
-		}
-
-		return $returnArray;
-	}
-
-} // end build_post_fields()
-
-
-if ($_POST) {
 	$post_url = 'https://certificationapi.oshwa.org/api/projects/';
-	$curl = curl_init($post_url);
-	curl_setopt($curl, CURLOPT_URL, $post_url);
-	curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-
+	$curl = curl_init( $post_url );
+	curl_setopt( $curl, CURLOPT_URL, $post_url );
+	curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true );
 	$headers = [
 		'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzOWEyYWUzYmYzYjUwMDAxOGYzOTg2MiIsImlhdCI6MTY3MTA0ODEyOSwiZXhwIjoxNjc5Njg4MTI5fQ.5_BqE2I6j1lJbunXkMEXSjWk2QH9K1urnzQcOYknYmM',
 		'Content-Type: application/json',
 	];
-	curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-
-	curl_setopt($curl, CURLOPT_POST, true);
-	curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($message));
-
-	$post_response = curl_exec($curl);
-	//var_dump($post_response);
-
-	curl_close($curl);
+	curl_setopt( $curl, CURLOPT_HTTPHEADER, $headers );
+	curl_setopt( $curl, CURLOPT_POST, true );
+	curl_setopt( $curl, CURLOPT_POSTFIELDS, json_encode( $message ) );
+	$post_response = curl_exec( $curl );
+	//var_dump( $post_response ); // Uncomment to debug
+	curl_close( $curl );
 }
 
-
-
-if (!array_key_exists('title', $_GET)) {
-	exit('Title required');
+if ( !array_key_exists( 'title', $_GET ) ) {
+	exit( 'Title required' );
 }
 
-$titlee = $_GET['title'];
 // Extra "e" means "encoded"
-$title = stripcslashes(str_replace('_', ' ', $titlee));
-// Basic decoding
-// Connect to the API
-$wiki = new EasyWiki('https://www.appropedia.org/w/api.php');
+$titlee = $_GET['title'];
 
-// Timestamp
+// Basic decoding
+$title = stripcslashes( str_replace( '_', ' ', $titlee ) );
+
+// Connect to the Appropedia API
+$api = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
+
+// Get timestamp
 $params = [
 	'titles' => $title,
 	'prop' => 'revisions',
 	'rvslots' => '*',
 	'rvprop' => 'timestamp',
 ];
-$result = $wiki->query($params);
-if (!$result) {
-	exit('Page not found');
+$result = $api->query( $params );
+if ( !$result ) {
+	exit( 'Page not found' );
 }
-
-// var_dump( $result ); exit; // Uncomment to debug
-$timestamp = $wiki->find('timestamp', $result);
-$timestamp = substr($timestamp, 0, -10);
-if (!$timestamp) {
-	exit('Page not found');
+//var_dump( $result ); exit; // Uncomment to debug
+$timestamp = $api->find( 'timestamp', $result );
+$timestamp = substr( $timestamp, 0, -10 );
+if ( !$timestamp ) {
+	exit( 'Page not found' );
 }
 
 // Get semantic properties
-$properties = @file_get_contents('https://www.appropedia.org/w/rest.php/semantic/v0/'.urlencode($titlee));
-if ($properties) {
-	$properties = json_decode($properties, true);
-} else {
-	$properties = [];
+$properties = @file_get_contents( 'https://www.appropedia.org/w/rest.php/v1/page/' . urlencode( $titlee ) . '/semantic' );
+if ( !$timestamp ) {
+	exit( 'Semantic properties not found' );
 }
-
-$keywords = ($properties['Keywords'] ?? '');
-$affiliations = ($properties['Affiliations'] ?? '');
-$authors = ($properties['Authors'] ?? '');
-$projectAuthors = ($properties['Project authors'] ?? '');
-$status = ($properties['Status'] ?? '');
-$made = ($properties['Made'] ?? '');
-$uses = ($properties['Uses'] ?? '');
-$license = ($properties['License'] ?? 'CC-BY-SA-4.0');
-$hardwareLicense = ($properties['Hardware license'] ?? 'CC-BY-SA-4.0');
-$softwareLicense = ($properties['Software license'] ?? '');
-$location = ($properties['Location'] ?? '');
-$modDate = ($properties['Modification date'] ?? '');
-$URL = ($properties['URL'] ?? '');
+$properties = json_decode( $properties, true );
+$keywords = $properties['Keywords'] ?? '';
+$affiliations = $properties['Affiliations'] ?? '';
+$authors = $properties['Authors'] ?? '';
+$projectAuthors = $properties['Project authors'] ?? '';
+$status = $properties['Status'] ?? '';
+$made = $properties['Made'] ?? '';
+$uses = $properties['Uses'] ?? '';
+$license = $properties['License'] ?? 'CC-BY-SA-4.0';
+$hardwareLicense = $properties['Hardware license'] ?? 'CC-BY-SA-4.0';
+$softwareLicense = $properties['Software license'] ?? '';
+$location = $properties['Location'] ?? '';
+$modDate = $properties['Modification date'] ?? '';
+$URL = $properties['URL'] ?? '';
 
 // Get extract
 $params = [
@@ -217,33 +176,30 @@ $params = [
 	'exlimit' => 1,
 	'explaintext' => 1,
 ];
-$result = $wiki->query($params);
-// var_dump( $result ); exit; // Uncomment to debug
-$extract = $wiki->find('extract', $result);
-$extract = str_replace('"', "'", $extract);
-$extract = str_replace("\n", ' ', $extract);
-$extract = trim($extract);
+$result = $api->query( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$extract = $api->find( 'extract', $result );
+$extract = str_replace( '"', "'", $extract );
+$extract = str_replace( "\n", ' ', $extract );
+$extract = trim( $extract );
 
-
-// First author name
-if (empty($authors) and !empty($projectAuthors)) {
+// Get first author name
+if ( empty( $authors ) and !empty( $projectAuthors ) ) {
 	$authors = $projectAuthors;
 }
-
-// Keywords
-$keywords = strtolower($keywords);
-
-$firstAuthor = explode(',', $authors)[0];
+$firstAuthor = explode( ',', $authors )[0];
 $params = [
 	'title' => $title,
 	'action' => 'expandtemplates',
 	'prop' => 'wikitext',
-	'text' => '{{Databox/name|'.$firstAuthor.'}}',
+	'text' => '{{REALNAME:' . $firstAuthor . '}}',
 ];
+$result = $api->get( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$firstAuthorName = $api->find( 'wikitext', $result );
 
-$result = $wiki->get($params);
-$metadata = $wiki->find('wikitext', $result);
-$firstAuthorName = preg_replace('/\[\[\User\:(.*)\|(.*)]\]/', '$2', $metadata);
+// Get keywords
+$keywords = strtolower( $keywords );
 
 // Get revisions
 $params = [
@@ -252,18 +208,18 @@ $params = [
 	'rvprop' => 'ids|userid',
 	'rvlimit' => 'max',
 ];
-$result = $wiki->query($params);
-// var_dump( $result ); exit; // Uncomment to debug
-$revisions = $wiki->find('revisions', $result);
-$version = count($revisions[0]);
+$result = $api->query( $params );
+//var_dump( $result ); exit; // Uncomment to debug
+$revisions = $api->find( 'revisions', $result );
+$version = count( $revisions[0] );
 
 // ResponsiblePartyType and ResponsibleParty
 // If affiliation is present, this will be selected as default.
-if ($affiliations) {
+if ( $affiliations ) {
 	$responsiblePartyType = 'Organization';
 	$notResponsiblePartyType = 'Individual';
 	$bindingParty = $firstAuthorName;
-	$responsibleParty = explode(',', $affiliations)[0];
+	$responsibleParty = explode( ',', $affiliations )[0];
 } else {
 	$responsiblePartyType = 'Individual';
 	$notResponsiblePartyType = 'Organization';
@@ -271,444 +227,153 @@ if ($affiliations) {
 	$responsibleParty = $firstAuthor;
 }
 
-
-// Country
+// Get country
 // https://stackoverflow.com/questions/21439272/file-get-contents-returns-404-when-url-is-opened-with-the-browser-and-url-is-val
 // Some browser spoofing to not be blocked by the API
-function get_data($url)
-{
-	$userAgent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13';
-	$ch = curl_init();
-	curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
-	curl_setopt($ch, CURLOPT_URL, $url);
-	curl_setopt($ch, CURLOPT_FAILONERROR, true);
-	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-	curl_setopt($ch, CURLOPT_AUTOREFERER, true);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-	$locationInfo = curl_exec($ch);
-	// To debug cURL
-	if (!$locationInfo) {
-		echo '<br />cURL error number:'.curl_errno($ch);
-		echo '<br />cURL error:'.curl_error($ch);
-		exit;
-	} else {
-		return $locationInfo;
+function get_data( $url ) {
+	$curl = curl_init( $url );
+	curl_setopt( $curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13' );
+	curl_setopt( $curl, CURLOPT_FAILONERROR, true );
+	curl_setopt( $curl, CURLOPT_FOLLOWLOCATION, true );
+	curl_setopt( $curl, CURLOPT_AUTOREFERER, true );
+	curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true );
+	curl_setopt( $curl, CURLOPT_TIMEOUT, 10 );
+	$data = curl_exec( $curl );
+	if ( !$data ) {
+		exit( 'cURL error number:' . curl_errno( $curl ) . ' cURL error:' . curl_error( $curl ) );
 	}
+	$data = json_decode( $data, true );
+	return $data;
+}
 
-	return $locationInfo;
-
-} // end get_data()
-
-
-// if (strpos($location, "lat=)") and strpos($responsibleParty, "lon=")){
-$pattern = '/-?\d{1,2}\.\d+\s-?\d{1,2}\.\d+/';
-
-
-if (preg_match($pattern, $location)) {
-	$latLon = explode(' ', $location);
-	$url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='.$latLon[0].'&lon='.$latLon[1];
+if ( preg_match( '/-?\d{1,2}\.\d+\s-?\d{1,2}\.\d+/', $location ) ) {
+	$latLon = explode( ' ', $location );
+	$url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' . $latLon[0] . '&lon=' . $latLon[1];
 	try {
-		$locationInfo = get_data($url);
+		$locationInfo = get_data( $url );
 	} finally {
-		$country = json_decode($locationInfo, true)['address']['country'];
-		$state = json_decode($locationInfo, true)[0]['address']['state'];
-		$postalCode = json_decode($locationInfo, true)[0]['address']['postcode'] ? json_decode($locationInfo, true)[0]['address']['postcode'] : 'NA';
+		$country = $locationInfo[0]['address']['country'];
+		$state = $locationInfo[0]['address']['state'];
+		$postalCode = $locationInfo[0]['address']['postcode'] ?? 'NA';
 	}
 } else {
-	$location = str_replace(' ', '+', $location);
-	$url = 'https://nominatim.openstreetmap.org/search.php?addressdetails=1&hierarchy=0&group_hierarchy=1&format=jsonv2&q='.$location;
+	$location = str_replace( ' ', '+', $location );
+	$url = 'https://nominatim.openstreetmap.org/search.php?addressdetails=1&hierarchy=0&group_hierarchy=1&format=jsonv2&q=' . $location;
 	try {
-		$locationInfo = get_data($url);
+		$locationInfo = get_data( $url );
 	} finally {
-		$country = isset(json_decode($locationInfo, true)[0]['address']['country']) ? json_decode($locationInfo, true)[0]['address']['country'] : '';
-		$state = isset(json_decode($locationInfo, true)[0]['address']['state']) ? json_decode($locationInfo, true)[0]['address']['state'] : '';
-		$postCode = isset(json_decode($locationInfo, true)[0]['address']['postcode']) ? json_decode($locationInfo, true)[0]['address']['postcode'] : '';
-
+		$country = $locationInfo[0]['address']['country'] ?? '';
+		$state = $locationInfo[0]['address']['state'] ?? '';
+		$postCode = $locationInfo[0]['address']['postcode'] ?? '';
 		// https://wiki.openstreetmap.org/wiki/Proposed_features/new_place_values
-		// place= population
+		// place = population
 		// city = 100,000+
-		// town= 10000 - 100,000
-		// village= <10,000
-		// hamlet= <100
-		if (isset(json_decode($locationInfo, true)[0]['address']['place'])) {
-			$place = json_decode($locationInfo, true)[0]['address']['place'];
-		} else if (isset(json_decode($locationInfo, true)[0]['address']['city'])) {
-			$place = json_decode($locationInfo, true)[0]['address']['city'];
-		} else if (isset(json_decode($locationInfo, true)[0]['address']['town'])) {
-			$place = json_decode($locationInfo, true)[0]['address']['town'];
-		} else if (isset(json_decode($locationInfo, true)[0]['address']['county'])) {
-			$place = json_decode($locationInfo, true)[0]['address']['county'];
-		} else if (isset(json_decode($locationInfo, true)[0]['address']['village'])) {
-			$place = json_decode($locationInfo, true)[0]['address']['village'];
-		} else if (isset(json_decode($locationInfo, true)[0]['address']['hamlet'])) {
-			$place = json_decode($locationInfo, true)[0]['address']['hamlet'];
+		// town = 10000 to 100,000
+		// village = < 10,000
+		// hamlet = < 100
+		if ( isset( $locationInfo[0]['address']['place'] ) ) {
+			$place = $locationInfo[0]['address']['place'];
+		} else if ( isset($locationInfo[0]['address']['city'] ) ) {
+			$place = $locationInfo[0]['address']['city'];
+		} else if ( isset($locationInfo[0]['address']['town'] ) ) {
+			$place = $locationInfo[0]['address']['town'];
+		} else if ( isset($locationInfo[0]['address']['county'] ) ) {
+			$place = $locationInfo[0]['address']['county'];
+		} else if ( isset($locationInfo[0]['address']['village'] ) ) {
+			$place = $locationInfo[0]['address']['village'];
+		} else if ( isset($locationInfo[0]['address']['hamlet'] ) ) {
+			$place = $locationInfo[0]['address']['hamlet'];
 		}
-	} // end try
-} // end if
-
-if ($country == 'United States') {
-	$country = 'United States of America';
+	}
 }
 
 // All countries
-// length 252
-$countries_list = [
-	'Afghanistan',
-	'Aland Islands',
-	'Albania',
-	'Algeria',
-	'American Samoa',
-	'Andorra',
-	'Angola',
-	'Anguilla',
-	'Antarctica',
-	'Antigua and Barbuda',
-	'Argentina',
-	'Armenia',
-	'Aruba',
-	'Australia',
-	'Austria',
-	'Azerbaijan',
-	'Bahamas',
-	'Bahrain',
-	'Bangladesh',
-	'Barbados',
-	'Belarus',
-	'Belgium',
-	'Belize',
-	'Benin',
-	'Bermuda',
-	'Bhutan',
-	'Bolivia',
-	'Bonaire, Sint Eustatius and Saba',
-	'Bosnia and Herzegovina',
-	'Botswana',
-	'Bouvet Island',
-	'Brazil',
-	'British Indian Ocean Territory',
-	'Brunei Darussalam',
-	'Bulgaria',
-	'Burkina Faso',
-	'Burundi',
-	'Cambodia',
-	'Cameroon',
-	'Canada',
-	'Cape Verde',
-	'Cayman Islands',
-	'Central African Republic',
-	'Chad',
-	'Chile',
-	'China',
-	'Christmas Island',
-	'Cocos (Keeling) Islands',
-	'Colombia',
-	'Comoros',
-	'Congo',
-	'Congo, Democratic Republic of the Congo',
-	'Cook Islands',
-	'Costa Rica',
-	"Cote D'Ivoire",
-	'Croatia',
-	'Cuba',
-	'Curacao',
-	'Cyprus',
-	'Czech Republic',
-	'Denmark',
-	'Djibouti',
-	'Dominica',
-	'Dominican Republic',
-	'Ecuador',
-	'Egypt',
-	'El Salvador',
-	'Equatorial Guinea',
-	'Eritrea',
-	'Estonia',
-	'Ethiopia',
-	'Falkland Islands (Malvinas)',
-	'Faroe Islands',
-	'Fiji',
-	'Finland',
-	'France',
-	'French Guiana',
-	'French Polynesia',
-	'French Southern Territories',
-	'Gabon',
-	'Gambia',
-	'Georgia',
-	'Germany',
-	'Ghana',
-	'Gibraltar',
-	'Greece',
-	'Greenland',
-	'Grenada',
-	'Guadeloupe',
-	'Guam',
-	'Guatemala',
-	'Guernsey',
-	'Guinea',
-	'Guinea-Bissau',
-	'Guyana',
-	'Haiti',
-	'Heard Island and Mcdonald Islands',
-	'Holy See (Vatican City State)',
-	'Honduras',
-	'Hong Kong',
-	'Hungary',
-	'Iceland',
-	'India',
-	'Indonesia',
-	'Iran, Islamic Republic of',
-	'Iraq',
-	'Ireland',
-	'Isle of Man',
-	'Israel',
-	'Italy',
-	'Jamaica',
-	'Japan',
-	'Jersey',
-	'Jordan',
-	'Kazakhstan',
-	'Kenya',
-	'Kiribati',
-	"Korea, Democratic People's Republic of",
-	'Korea, Republic of',
-	'Kosovo',
-	'Kuwait',
-	'Kyrgyzstan',
-	"Lao People's Democratic Republic",
-	'Latvia',
-	'Lebanon',
-	'Lesotho',
-	'Liberia',
-	'Libyan Arab Jamahiriya',
-	'Liechtenstein',
-	'Lithuania',
-	'Luxembourg',
-	'Macao',
-	'Macedonia, the Former Yugoslav Republic of',
-	'Madagascar',
-	'Malawi',
-	'Malaysia',
-	'Maldives',
-	'Mali',
-	'Malta',
-	'Marshall Islands',
-	'Martinique',
-	'Mauritania',
-	'Mauritius',
-	'Mayotte',
-	'Mexico',
-	'Micronesia, Federated States of',
-	'Moldova, Republic of',
-	'Monaco',
-	'Mongolia',
-	'Montenegro',
-	'Montserrat',
-	'Morocco',
-	'Mozambique',
-	'Myanmar',
-	'Namibia',
-	'Nauru',
-	'Nepal',
-	'Netherlands',
-	'Netherlands Antilles',
-	'New Caledonia',
-	'New Zealand',
-	'Nicaragua',
-	'Niger',
-	'Nigeria',
-	'Niue',
-	'Norfolk Island',
-	'Northern Mariana Islands',
-	'Norway',
-	'Oman',
-	'Pakistan',
-	'Palau',
-	'Palestinian Territory, Occupied',
-	'Panama',
-	'Papua New Guinea',
-	'Paraguay',
-	'Peru',
-	'Philippines',
-	'Pitcairn',
-	'Poland',
-	'Portugal',
-	'Puerto Rico',
-	'Qatar',
-	'Reunion',
-	'Romania',
-	'Russian Federation',
-	'Rwanda',
-	'Saint Barthelemy',
-	'Saint Helena',
-	'Saint Kitts and Nevis',
-	'Saint Lucia',
-	'Saint Martin',
-	'Saint Pierre and Miquelon',
-	'Saint Vincent and the Grenadines',
-	'Samoa',
-	'San Marino',
-	'Sao Tome and Principe',
-	'Saudi Arabia',
-	'Senegal',
-	'Serbia',
-	'Serbia and Montenegro',
-	'Seychelles',
-	'Sierra Leone',
-	'Singapore',
-	'Sint Maarten',
-	'Slovakia',
-	'Slovenia',
-	'Solomon Islands',
-	'Somalia',
-	'South Africa',
-	'South Georgia and the South Sandwich Islands',
-	'South Sudan',
-	'Spain',
-	'Sri Lanka',
-	'Sudan',
-	'Suriname',
-	'Svalbard and Jan Mayen',
-	'Swaziland',
-	'Sweden',
-	'Switzerland',
-	'Syrian Arab Republic',
-	'Taiwan, Province of China',
-	'Tajikistan',
-	'Tanzania, United Republic of',
-	'Thailand',
-	'Timor-Leste',
-	'Togo',
-	'Tokelau',
-	'Tonga',
-	'Trinidad and Tobago',
-	'Tunisia',
-	'Turkey',
-	'Turkmenistan',
-	'Turks and Caicos Islands',
-	'Tuvalu',
-	'Uganda',
-	'Ukraine',
-	'United Arab Emirates',
-	'United Kingdom',
-	'United States of America',
-	'United States Minor Outlying Islands',
-	'Uruguay',
-	'Uzbekistan',
-	'Vanuatu',
-	'Venezuela',
-	'Viet Nam',
-	'Virgin Islands, British',
-	'Virgin Islands, U.s.',
-	'Wallis and Futuna',
-	'Western Sahara',
-	'Yemen',
-	'Zambia',
-	'Zimbabwe',
-];
-foreach ($countries_list as $key => $value) {
-	if ($value == $country) {
+if ( $country === 'United States' ) {
+	$country = 'United States of America';
+}
+$countries_list = [ 'Afghanistan', 'Aland Islands', 'Albania', 'Algeria', 'American Samoa', 'Andorra', 'Angola', 'Anguilla', 'Antarctica', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Aruba', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bermuda', 'Bhutan', 'Bolivia', 'Bonaire, Sint Eustatius and Saba', 'Bosnia and Herzegovina', 'Botswana', 'Bouvet Island', 'Brazil', 'British Indian Ocean Territory', 'Brunei Darussalam', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Cayman Islands', 'Central African Republic', 'Chad', 'Chile', 'China', 'Christmas Island', 'Cocos (Keeling) Islands', 'Colombia', 'Comoros', 'Congo', 'Congo, Democratic Republic of the Congo', 'Cook Islands', 'Costa Rica', "Cote D'Ivoire", 'Croatia', 'Cuba', 'Curacao', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Ethiopia', 'Falkland Islands (Malvinas)', 'Faroe Islands', 'Fiji', 'Finland', 'France', 'French Guiana', 'French Polynesia', 'French Southern Territories', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Gibraltar', 'Greece', 'Greenland', 'Grenada', 'Guadeloupe', 'Guam', 'Guatemala', 'Guernsey', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Heard Island and Mcdonald Islands', 'Holy See (Vatican City State)', 'Honduras', 'Hong Kong', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran, Islamic Republic of', 'Iraq', 'Ireland', 'Isle of Man', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jersey', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', "Korea, Democratic People's Republic of", 'Korea, Republic of', 'Kosovo', 'Kuwait', 'Kyrgyzstan', "Lao People's Democratic Republic", 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libyan Arab Jamahiriya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Macao', 'Macedonia, the Former Yugoslav Republic of', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Martinique', 'Mauritania', 'Mauritius', 'Mayotte', 'Mexico', 'Micronesia, Federated States of', 'Moldova, Republic of', 'Monaco', 'Mongolia', 'Montenegro', 'Montserrat', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'Netherlands Antilles', 'New Caledonia', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'Niue', 'Norfolk Island', 'Northern Mariana Islands', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestinian Territory, Occupied', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Pitcairn', 'Poland', 'Portugal', 'Puerto Rico', 'Qatar', 'Reunion', 'Romania', 'Russian Federation', 'Rwanda', 'Saint Barthelemy', 'Saint Helena', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Martin', 'Saint Pierre and Miquelon', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Serbia and Montenegro', 'Seychelles', 'Sierra Leone', 'Singapore', 'Sint Maarten', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Georgia and the South Sandwich Islands', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Svalbard and Jan Mayen', 'Swaziland', 'Sweden', 'Switzerland', 'Syrian Arab Republic', 'Taiwan, Province of China', 'Tajikistan', 'Tanzania, United Republic of', 'Thailand', 'Timor-Leste', 'Togo', 'Tokelau', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Turks and Caicos Islands', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States of America', 'United States Minor Outlying Islands', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Venezuela', 'Viet Nam', 'Virgin Islands, British', 'Virgin Islands, U.s.', 'Wallis and Futuna', 'Western Sahara', 'Yemen', 'Zambia', 'Zimbabwe' ];
+foreach ( $countries_list as $key => $value ) {
+	if ( $value === $country ) {
 		$country_key = $key;
-		unset($countries_list[$key]);
+		unset( $countries_list[ $key ] );
 	}
 }
 
-
-// Excerpt
-$excerptCall = @file_get_contents(
-	'https://www.appropedia.org/w/api.php?action=query&prop=extracts&exsentences=5&exlimit=1&titles='.urlencode($titlee).'&formatversion=latest&explaintext=1&format=json'
-);
-$extract = json_decode($excerptCall, true)['query']['pages'][0]['extract'];
-
-
 // Uses validation
-$OSHWAvalidUses = array_map(
-	'trim',
-	array_map(
-		'ucwords',
-		explode(',', '3D Printing, Agriculture, Arts, Education, Electronics, Enclosure, Environmental, Home Connection, IOT, Manufacturing, Robotics, Science, Sound, Space, Tool, Wearables')
-	)
-);
-$usesArray = array_map('trim', array_map('ucwords', explode(',', $uses)));
-$validUses = array_intersect($usesArray, $OSHWAvalidUses);
-$validUsesSize = count($validUses);
-if (!isset($validUses) or $validUsesSize == 0) {
+$OSHWAvalidUses = '3D Printing, Agriculture, Arts, Education, Electronics, Enclosure, Environmental, Home Connection, IOT, Manufacturing, Robotics, Science, Sound, Space, Tool, Wearables';
+$OSHWAvalidUses = explode( ',', $OSHWAvalidUses );
+$OSHWAvalidUses = array_map( 'trim', $OSHWAvalidUses );
+$OSHWAvalidUses = array_map( 'ucwords', $OSHWAvalidUses );
+$usesArray = array_map( 'trim', array_map( 'ucwords', explode( ',', $uses ) ) );
+$validUses = array_intersect( $usesArray, $OSHWAvalidUses );
+$validUsesSize = count( $validUses );
+if ( !$validUses ) {
 	$primaryType = [];
 	$secondaryTypes = [];
 	$otherTypes = $validUses;
-} else if ($validUsesSize == 1) {
-	$primaryType = array_shift($validUses);
+} else if ( $validUsesSize === 1 ) {
+	$primaryType = array_shift( $validUses );
 	$secondaryTypes = [];
-	$otherTypes = array_diff($OSHWAvalidUses, $primaryType);
-} else if ($validUsesSize == 2) {
-	$primaryType = array_shift($validUses);
-	$secondaryTypes = array_shift($validUses);
-	$otherTypes = array_diff($OSHWAvalidUses, $validUses);
-} else if ($validUsesSize > 2) {
-	$primaryType = array_shift($validUses);
+	$otherTypes = array_diff( $OSHWAvalidUses, $primaryType );
+} else if ( $validUsesSize === 2 ) {
+	$primaryType = array_shift( $validUses );
+	$secondaryTypes = array_shift( $validUses );
+	$otherTypes = array_diff( $OSHWAvalidUses, $validUses );
+} else if ( $validUsesSize > 2 ) {
+	$primaryType = array_shift( $validUses );
 	$secondaryTypes = $validUses;
-	array_unshift($validUses, $primaryType);
-	$otherTypes = array_diff($OSHWAvalidUses, $validUses);
+	array_unshift( $validUses, $primaryType );
+	$otherTypes = array_diff( $OSHWAvalidUses, $validUses );
 };
-foreach ($OSHWAvalidUses as $key => $value) {
-	if ($value == $primaryType) {
+foreach ( $OSHWAvalidUses as $key => $value ) {
+	if ( $value === $primaryType ) {
 		$primaryTypeKey = $key;
 	}
 }
 
-?>
-
-<!DOCTYPE html>
-
+?><!DOCTYPE html>
 <html>
-
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>OSHWA</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
 	<style>
-		.small-middle-container{
+		.small-middle-container {
 			margin: auto;
 			width: 60%;
 		}
-		.readonly,.readonly:active,.readonly:enabled{
+		.readonly, .readonly:active, .readonly:enabled {
 			background:#eee;
 		}
 	</style>
 </head>
-	
-<body>
-	<div class="container">
-	
-	
-	<h1>Certify a project</h1>
-	<p>This is a list of the metadata retrieved for project <strong><a href="<?php echo $URL; ?>"><?php echo $title; ?></a></strong>. Do the following:</p>
-	
-	<ol>
-	<li>Review the parameters drawn from the documentation. If any has an error or is missing, go back to the <a href="<?php echo $URL; ?>&action=edit">documentation page and edit the appropriate template</a>.</li>
-	
-	<li>Fill out the missing information in the <a href="">form</a> below or make any necessary changes.</li>
-	
-	<li>Make the request by submitting the information at the end of the page.</li>
-	
-	</ol>
-	
-	<p>Please note that OSHWA will contact you directly regarding the status of your submission. This script makes a direct submission using the OSHWA API. Appropedia does not keep track of any applications and will not store copies of the information entered on this page.</p>
+<body><div class="container">
 
-<hr><br>
+<h1>Certify a project</h1>
+
+<p>This is a list of the metadata retrieved for project <strong><a href="<?php echo $URL; ?>"><?php echo $title; ?></a></strong>. Do the following:</p>
+<ol>
+<li>Review the parameters drawn from the documentation. If any has an error or is missing, go back to the <a href="<?php echo $URL; ?>&action=edit">documentation page and edit the appropriate template</a>.</li>
+<li>Fill out the missing information in the <a href="">form</a> below or make any necessary changes.</li>
+<li>Make the request by submitting the information at the end of the page.</li>
+</ol>
+<p>Please note that OSHWA will contact you directly regarding the status of your submission. This script makes a direct submission using the OSHWA API. Appropedia does not keep track of any applications and will not store copies of the information entered on this page.</p>
+<hr>
+<br>
+
 <form method="post" action="https://www.appropedia.org/scripts/retrieveOshwaMetadata.php" class="small-middle-container">
 
-<h3>Basic information —Section 1 of 4</h3>
+<h3>Basic information — Section 1 of 4</h3>
+
 <p>This part of the form asks for basic information about the responsible party for the project to be certified, such as the name of the individual, company, or organization certifying the project and contact information for any future correspondence from OSHWA regarding your certification.</p>
 
 <div class="mb-4">
 	<label for="responsiblePartyType" class="form-label">This certification is on behalf of a:</label>
 	<select id="responsiblePartyType" name="responsiblePartyType" class="form-select form-select" aria-label=".form-select-lg example" required>
-	 <option class="readonly" value="" readonly>Select one</option>
-	 <option value="<?php echo $responsiblePartyType; ?>" selected><?php echo $responsiblePartyType; ?></option>
-	 <option value="<?php echo $notResponsiblePartyType; ?>"><?php echo $notResponsiblePartyType; ?></option>
+		<option class="readonly" value="" readonly>Select one</option>
+		<option value="<?php echo $responsiblePartyType; ?>" selected><?php echo $responsiblePartyType; ?></option>
+		<option value="<?php echo $notResponsiblePartyType; ?>"><?php echo $notResponsiblePartyType; ?></option>
 	</select>
 	<div id="responsiblePartyTypeHelp" class="form-text">Appropedia will select organization if there is an affiliation named on the documentation, but you can override this.</div>
 </div>
@@ -728,14 +393,14 @@ foreach ($OSHWAvalidUses as $key => $value) {
 <div class="mb-5">
 	<label for="country" class="form-label">Country</label>
 	<select id="country" name="country" class="form-select form-select" aria-label=".form-select-lg example">
-	 <?php
-		$yesCountryMsg = '<option value="'.$country.'" selected>'.$country.'</option>';
-		$noCountryMsg = '<option class="readonly" value="" selected readonly>Select a country</option>';
-		echo isset($country) ? $yesCountryMsg : $noCountryMsg;
-		foreach ($countries_list as $c) {
-			echo '<option value="'.$c.'">'.$c.'</option>';
-		}
-		?>
+		<?php if ( $country ): ?>
+		<option selected><?php echo $country; ?></option>
+		<?php else: ?>
+		<option selected readonly class="readonly" value="">Select a country</option>
+		<?php endif; ?>
+		<?php foreach ( $countries_list as $c ): ?>
+		<option><?php echo $c; ?></option>
+		<?php endforeach; ?>
 	</select>
 	<div id="countryHelp" name="countryHelp" class="form-text">Country (and other location information) is calculated from the metadata added to the page, if available.</div>
 </div>
@@ -782,8 +447,8 @@ foreach ($OSHWAvalidUses as $key => $value) {
 	<div id="publicContactHelp" class="form-text">This address will be made publicly available in the certification directory.</div>
 </div>
 
+<h3>Project information — Section 2 of 4</h3>
 
-<h3>Project information —Section 2 of 4</h3>
 <p>This part of the form asks for information about the project you wish to certify. Information submitted here will appear on your project’s profile listing.</p>
 
 <div class="mb-5 row">
@@ -791,7 +456,6 @@ foreach ($OSHWAvalidUses as $key => $value) {
 		<label for="projectName" class="form-label">Project name</label>
 		<input id="projectName" name="projectName" type="text" required class="form-control readonly" aria-describedby="projectNameHelp" value="<?php echo isset($title) ? $title : ''; ?>" readonly>
 		<div id="projectNameHelp" class="form-text">Defaults to the Appropedia project page title. If you wish to rename it, consider moving the page.</div>
-
 	</div>
 	<div class="col">
 		<label for="projectVersion" class="form-label">Project version</label>
@@ -824,14 +488,14 @@ foreach ($OSHWAvalidUses as $key => $value) {
 <div class="mb-5">
 	<label for="primaryType" class="form-label">Primary project type</label>
 	<select id="primaryType" name="primaryType" required class="form-select form-select" aria-label="">
-	 <?php
-		$yesPrimaryMsg = '<option value="'.$primaryType.'" selected>'.$primaryType.'</option>';
-		$noPrimaryMsg = '<option class="readonly" value="" selected readonly>Select a type</option>';
-		echo count($primaryType) > 0 ? $yesPrimaryMsg : $noPrimaryMsg;
-		foreach ($otherTypes as $o) {
-			echo '<option value="'.$o.'">'.$o.'</option>';
-		}
-		?>
+		<?php if ( $primaryType ): ?>
+		<option selected><?php echo $primaryType; ?></option>
+		<?php else: ?>
+		<option selected readonly class="readonly" value="">Select a type</option>
+		<?php endif; ?>
+		<?php foreach ( $otherTypes as $otherType ): ?>
+		<option><?php echo $otherType; ?></option>
+		<?php endforeach; ?>
 	</select>
 	<div id="primaryTypeHelp" name="primaryTypeHelp" class="form-text">This will search the <tt>uses</tt> parameter on Project data for the first occurrence of any of the following keywords: 3D Printing, Agriculture, Arts, Education, Electronics, Enclosure, Environmental, Home Connection, IOT, Manufacturing, Robotics, Science, Sound, Space, Tool, Wearables. If your project doesn't fall into any of these types, add "Other".</div>
 </div>
@@ -839,15 +503,12 @@ foreach ($OSHWAvalidUses as $key => $value) {
 <div class="mb-5">
 	<label for="additionalType" class="form-label">Additional project types</label>
 	<select id="additionalType" name="additionalType" class="form-select form-select" multiple aria-label="multiple">
-	<?php
-	foreach ($secondaryTypes as $s) {
-		echo '<option value="'.$s.'" selected>'.$s.'</option>';
-	}
-
-	foreach ($otherTypes as $o) {
-		echo '<option value="'.$o.'">'.$o.'</option>';
-	}
-	?>
+		<?php foreach ( $secondaryTypes as $secondaryType ): ?>
+		<option><?php echo $secondaryType; ?></option>
+		<?php endforeach; ?>
+		<?php foreach ( $otherTypes as $otherType ): ?>
+		<option><?php echo $otherType; ?></option>
+		<?php endforeach; ?>
 	</select>
 	<div id="additionalTypeHelp" class="form-text">This will search the <tt>uses</tt> parameter for any occurrence (other than the first) of any of the following keywords: 3D Printing, Agriculture, Arts, Education, Electronics, Enclosure, Environmental, Home Connection, IOT, Manufacturing, Robotics, Science, Sound, Space, Tool, Wearables. You can select more than one option (press CTRL to select multiple options).</div>
 </div>
@@ -901,8 +562,8 @@ foreach ($OSHWAvalidUses as $key => $value) {
 	</div>
 </div>
 
+<h3>Licensing information — Section 3 of 4</h3>
 
-<h3>Licensing information —Section 3 of 4</h3>
 <p>This part of the form asks for information about your project’s licensing. In order to qualify for OSHWA certification, you must have chosen an open source license for your hardware, your software (if any), and your documentation. Your licenses for each of these elements will appear on your project’s profile listing.</p>
 
 <div class="mb-5">
@@ -923,137 +584,135 @@ foreach ($OSHWAvalidUses as $key => $value) {
 	<div id="documentationLicenseHelp" class="form-text">Any changes to the documentation license must be done at the page.</div>
 </div>
 
-
-
-<!-- -->
 <div class="row">
 	<div class="mb-5 col">The project is licensed in a way to allow for modifications and derivative works without commercial restriction.</div>
 	<div class="mb-5 col">
-	 <select id="noCommercialRestriction" name="noCommercialRestriction" required class="form-select" aria-label="noCommercialRestriction">
+		<select id="noCommercialRestriction" name="noCommercialRestriction" required class="form-select" aria-label="noCommercialRestriction">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
+		</select>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationNcr" name="explanationNcr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNcrHelp"></textarea>
-	 <div id="explanationNcrHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationNcr" name="explanationNcr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNcrHelp"></textarea>
+		<div id="explanationNcrHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
 <div class="row">
 	<div class="mb-5 col">There is no restriction within my control to selling or giving away the project documentation.</div>
 	<div class="mb-5 col">
-	 <select id="noDocumentationRestriction" name="noDocumentationRestriction" required class="form-select" aria-label="noDocumentationRestriction" id="noDocumentationRestriction" aria-describedby="noDocumentationRestrictionHelp">
+		<select id="noDocumentationRestriction" name="noDocumentationRestriction" required class="form-select" aria-label="noDocumentationRestriction" id="noDocumentationRestriction" aria-describedby="noDocumentationRestrictionHelp">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
-	 <label for="noDocumentationRestriction" class="form-label"></label>
+		</select>
+		<label for="noDocumentationRestriction" class="form-label"></label>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationNdr" name="explanationNdr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNdrHelp"></textarea>
-	 <div id="explanationNdrHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationNdr" name="explanationNdr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNdrHelp"></textarea>
+		<div id="explanationNdrHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
 <div class="row">
 	<div class="mb-5 col">Where possible, I have chosen to use components in my hardware that are openly licensed.</div>
 	<div class="mb-5 col">
-	 <select id="openHardwareComponents" name="openHardwareComponents" required class="form-select" aria-label="openHardwareComponents">
+		<select id="openHardwareComponents" name="openHardwareComponents" required class="form-select" aria-label="openHardwareComponents">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
+		</select>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationOhwc" name="explanationOhwc" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationOhwcHelp"></textarea>
-	 <div id="explanationOhwcHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationOhwc" name="explanationOhwc" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationOhwcHelp"></textarea>
+		<div id="explanationOhwcHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
 <div class="row">
 	<div class="mb-5 col">I understand and comply with the "Creator Contribution requirement," explained in the <a href="https://certification.oshwa.org/requirements.html">Requirements for Certification.</a></div>
 	<div class="mb-5 col">
-	 <select id="creatorContribution" name="creatorContribution" required class="form-select" aria-label="creatorContribution">
+		<select id="creatorContribution" name="creatorContribution" required class="form-select" aria-label="creatorContribution">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
+		</select>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationCcr" name="explanationCcr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationCcrHelp"></textarea>
-	 <div id="explanationCcrHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationCcr" name="explanationCcr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationCcrHelp"></textarea>
+		<div id="explanationCcrHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
 <div class="row">
 	<div class="mb-5 col">There is no restriction on the use by persons or groups, or by the field of endeavor.</div>
 	<div class="mb-5 col">
-	 <select id="noUseRestriction" name="noUseRestriction" required class="form-select" aria-label="noUseRestriction">
+		<select id="noUseRestriction" name="noUseRestriction" required class="form-select" aria-label="noUseRestriction">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
+		</select>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationNur" name="explanationNur" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNurHelp"></textarea>
-	 <div id="explanationNurHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationNur" name="explanationNur" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNurHelp"></textarea>
+		<div id="explanationNurHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
 <div class="row">
 	<div class="mb-5 col">The rights granted by any license on the project applies to all whom the work is redistributed to.</div>
 	<div class="mb-5 col">
-	 <select id="redistributedWork" name="redistributedWork" required class="form-select" aria-label="redistributedWork">
+		<select id="redistributedWork" name="redistributedWork" required class="form-select" aria-label="redistributedWork">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
+		</select>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationRwr" name="explanationRwr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationRwrHelp"></textarea>
-	 <div id="explanationRwrHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationRwr" name="explanationRwr" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationRwrHelp"></textarea>
+		<div id="explanationRwrHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
 <div class="row">
 	<div class="mb-5 col">The rights granted under any license on the project do not depend on the licensed work being part of a specific product.</div>
 	<div class="mb-5 col">
-	 <select id="noSpecificProduct" name="noSpecificProduct" required class="form-select" aria-label="noSpecificProduct">
+		<select id="noSpecificProduct" name="noSpecificProduct" required class="form-select" aria-label="noSpecificProduct">
 		<option value="true" selected>Yes</option>
 		<option value="false">No</option>
-	 </select>
+		</select>
 	</div>
 	<div class="mb-5 col">
-	 <textarea id="explanationNsp" name="explanationNsp" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNspHelp"></textarea>
-	 <div id="explanationNspHelp" class="form-text">If you answered no, please explay why</div>
+		<textarea id="explanationNsp" name="explanationNsp" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNspHelp"></textarea>
+		<div id="explanationNspHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
 </div>
 
-	<div class="row">
-	 <div class="mb-5 col">The rights granted under any license on the project do not restrict other hardware or software, for example by requiring that all other hardware or software sold with the item be open source.</div>
-	 <div class="mb-5 col">
-		 <select id="noComponentRestriction" name="noComponentRestriction" required class="form-select" aria-label="noComponentRestriction">
+<div class="row">
+	<div class="mb-5 col">The rights granted under any license on the project do not restrict other hardware or software, for example by requiring that all other hardware or software sold with the item be open source.</div>
+	<div class="mb-5 col">
+		<select id="noComponentRestriction" name="noComponentRestriction" required class="form-select" aria-label="noComponentRestriction">
+		<option value="true" selected>Yes</option>
+		<option value="false">No</option>
+		</select>
+	</div>
+	<div class="mb-5 col">
+	<textarea id="explanationNor" name="explanationNor" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNorHelp"></textarea>
+		<div id="explanationNorHelp" class="form-text">If you answered no, please explay why</div>
+	</div>
+</div>
+
+<div class="row">
+	<div class="mb-5 col">The rights granted under any license on the project are technology neutral.</div>
+	<div class="mb-5 col">
+		<select id="technologyNeutral" name="technologyNeutral" required class="form-select" aria-label="technologyNeutral">
 			<option value="true" selected>Yes</option>
 			<option value="false">No</option>
-		 </select>
-	 </div>
-	 <div class="mb-5 col">
-	 <textarea id="explanationNor" name="explanationNor" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationNorHelp"></textarea>
-		 <div id="explanationNorHelp" class="form-text">If you answered no, please explay why</div>
-	 </div>
+		</select>
 	</div>
-
-	<div class="row">
-		<div class="mb-5 col">The rights granted under any license on the project are technology neutral.</div>
-		<div class="mb-5 col">
-			<select id="technologyNeutral" name="technologyNeutral" required class="form-select" aria-label="technologyNeutral">
-				<option value="true" selected>Yes</option>
-				<option value="false">No</option>
-			</select>
-		</div>
-		<div class="mb-5 col">
-			<textarea id="explanationTn" name="explanationTn" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationTnHelp"></textarea>
-			<div id="explanationTnHelp" class="form-text">If you answered no, please explay why</div>
-		</div>
+	<div class="mb-5 col">
+		<textarea id="explanationTn" name="explanationTn" readonly class="form-control readonly" placeholder="Provide a brief explanation (500 characters)" aria-describedby="explanationTnHelp"></textarea>
+		<div id="explanationTnHelp" class="form-text">If you answered no, please explay why</div>
 	</div>
+</div>
 
-<h3>Certification —Section 4 of 4</h3>
+<h3>Certification — Section 4 of 4</h3>
+
 <p>This part of the form asks you to certify that you agree to specific terms of the <a href="https://certification.oshwa.org/license-agreement">OSHWA Certification Mark License Agreement.</a></p>
 
 You agree to the following terms:
@@ -1078,7 +737,6 @@ You agree to the following terms:
 	<label for="responsibility" class="form-label">I have the ability to bind those responsible for the certified item to this agreement.</label>
 </div>
 
-
 <div class="mb-5">
 	<label for="explanationCertificationTerms" class="form-label">If you do not agree with any of the above terms, please explain.</label>
 	<textarea id="explanationCertificationTerms" name="explanationCertificationTerms" class="form-control" aria-describedby="explanationCertificationTermsHelp"></textarea>
@@ -1101,21 +759,18 @@ You agree to the following terms:
 	<input id="parentName" name="parentName" type="text" class="form-control" placeholder="Enter name of parent or legal guardian" aria-describedby="parentNameHelp">
 </div>
 
-	<button type="submit" class="btn btn-primary">Submit</button>
+<button type="submit" class="btn btn-primary">Submit</button>
+
 </form>
-
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
-
 <script>
-
-	function readWriteColor(){ 
+	function readWriteColor () { 
 		allReadOnly = document.querySelectorAll("[readOnly]");
 		for (let i = 0; i < allReadOnly.length; i++) {
 			if (!allReadOnly[i].classList.contains("readonly")){
-			 console.log(allReadOnly[i].classList);
+				console.log(allReadOnly[i].classList);
 				allReadOnly[i].style.backgroundColor = "#eee";
 				allReadOnly[i].classList.add('readonly'); 
 			}
@@ -1153,18 +808,18 @@ You agree to the following terms:
 
 	for (let i = 0; i < 9; i++) { 
 		drops[i].addEventListener("change", () => {
-		 if (drops[i].value == "false") {
+			if (drops[i].value == "false") {
 			exps[i].readOnly = false;
 			exps[i].classList.remove('readonly');
 			exps[i].required = true;
-		 } else {
+			} else {
 			exps[i].readOnly = true;
 			exps[i].classList.add('readonly');
 			exps[i].required = false;
-		 }
+			}
 		});
-	 }
-	 
+		}
+		
 	var drop0 = document.getElementById('responsiblePartyType');
 	var exp0 = document.getElementById('bindingParty');
 	if (drop0.value == "Organization") {
@@ -1180,7 +835,5 @@ You agree to the following terms:
 		}
 	});
 </script>
-
-
 </body>
 </html>
