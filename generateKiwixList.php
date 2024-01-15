@@ -14,27 +14,25 @@ $privateCategories = [
 error_reporting( 0 );
 ini_set( 'display_errors', 0 );
 
-// Connect to the Appropedia API
 require 'vendor/autoload.php';
-use Sophivorus\EasyWiki;
-$appropedia = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
+
+// Connect to the Appropedia API
+$api = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
 
 // Get all the titles in the main namespace
 $params = [
-	'action' => 'query',
-	'formatversion' => 2,
 	'list' => 'allpages',
 	'apnamespace' => 0,
 	'aplimit' => 'max',
 	'apfilterredir' => 'nonredirects',
 ];
-$result = $appropedia->get( $params );
+$result = $api->query( $params );
 //echo '<pre>'; var_dump( $result ); exit; // Uncomment to debug
-$titles = $appropedia->find( 'title', $result );
-while ( $continue = $appropedia->find( 'apcontinue', $result ) ) {
+$titles = $api->find( 'title', $result );
+while ( $continue = $api->find( 'apcontinue', $result ) ) {
 	$params['apcontinue'] = $continue;
-	$result = $appropedia->get( $params );
-	$titles = array_merge( $titles, $appropedia->find( 'title', $result ) );
+	$result = $api->query( $params );
+	$titles = array_merge( $titles, $api->find( 'title', $result ) );
 }
 //echo '<pre>'; var_dump( $titles ); exit; // Uncomment to debug
 
@@ -43,9 +41,9 @@ $params2 = [
 	'action' => 'askargs',
 	'conditions' => implode( '|', $privateCategories ),
 ];
-$result2 = $appropedia->get( $params2 );
+$result2 = $api->get( $params2 );
 //echo '<pre>'; var_dump( $result2 ); exit; // Uncomment to debug
-$results2 = $appropedia->find( 'results', $result2 );
+$results2 = $api->find( 'results', $result2 );
 $titles2 = array_keys( $results2 );
 
 // Filter the private pages

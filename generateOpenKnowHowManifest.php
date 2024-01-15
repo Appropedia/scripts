@@ -10,7 +10,6 @@ error_reporting( 0 );
 ini_set( 'display_errors', 0 );
 
 require 'vendor/autoload.php';
-use Sophivorus\EasyWiki;
 
 if ( !array_key_exists( 'title', $_GET ) ) {
 	exit( 'Title required' );

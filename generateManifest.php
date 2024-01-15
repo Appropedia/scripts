@@ -10,8 +10,6 @@ ini_set( 'display_errors', 0 );
 
 require 'vendor/autoload.php';
 
-use Sophivorus\EasyWiki;
-
 if ( !array_key_exists( 'title', $_GET ) ) {
 	exit( 'Title required' );
 }
@@ -19,7 +17,7 @@ $titlee = $_GET['title']; // Extra "e" means "encoded"
 $title = stripcslashes( str_replace( '_', ' ', $titlee ) ); // Basic decoding
 
 // Connect to the API
-$wiki = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
+$api = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
 
 // Timestamp
 $params = [
@@ -28,12 +26,12 @@ $params = [
 	'rvslots' => '*',
 	'rvprop' => 'timestamp',
 ];
-$result = $wiki->query( $params );
+$result = $api->query( $params );
 if ( !$result ) {
 	exit( 'Page not found' );
 }
 //var_dump( $result ); exit; // Uncomment to debug
-$timestamp = $wiki->find( 'timestamp', $result );
+$timestamp = $api->find( 'timestamp', $result );
 $timestamp = substr( $timestamp, 0, -10 );
 if ( !$timestamp ) {
 	exit( 'Page not found' );
@@ -65,9 +63,9 @@ $params = [
 	'exlimit' => 1,
 	'explaintext' => 1,
 ];
-$result = $wiki->query( $params );
+$result = $api->query( $params );
 //var_dump( $result ); exit; // Uncomment to debug
-$extract = $wiki->find( 'extract', $result );
+$extract = $api->find( 'extract', $result );
 $extract = str_replace( '"', "'", $extract );
 $extract = str_replace( "\n", ' ', $extract );
 $extract = trim( $extract );
@@ -79,9 +77,9 @@ $params = [
 	'prop' => 'wikitext',
 	'text' => '{{FIRSTREVISIONUSER}}--{{FULLPAGENAME}}--{{PAGELANGUAGE}}--{{FIRSTREVISIONTIMESTAMP}}--{{PAGEAUTHORS}}'
 ];
-$result = $wiki->get( $params );
+$result = $api->get( $params );
 // var_dump( $result ); exit; // Uncomment to debug
-$metadata = $wiki->find( 'wikitext', $result );
+$metadata = $api->find( 'wikitext', $result );
 $metadata = explode( '--', $metadata );
 //var_dump( $metadata ); exit; // Uncomment to debug
 $userCreated = 'User:' . $metadata[0];
@@ -95,9 +93,9 @@ $params = [
 	'prop' => 'pageimages',
 	'pithumbsize' => 1000,
 ];
-$result = $wiki->query( $params );
+$result = $api->query( $params );
 //var_dump( $result ); exit; // Uncomment to debug
-$image = $wiki->find( 'source', $result );
+$image = $api->find( 'source', $result );
 
 // Get revisions
 $params = [
@@ -106,9 +104,9 @@ $params = [
 	'rvprop' => 'ids|userid',
 	'rvlimit' => 'max',
 ];
-$result = $wiki->query( $params );
+$result = $api->query( $params );
 //var_dump( $result ); exit; // Uncomment to debug
-$revisions = $wiki->find( 'revisions', $result );
+$revisions = $api->find( 'revisions', $result );
 $version = count( $revisions );
 
 // Build the YAML file
