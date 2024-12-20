@@ -54,5 +54,6 @@ $titles = array_diff( $titles, $titles2 );
 header( 'Content-Type: text/csv; charset=utf-8' );
 foreach ( $titles as $title ) {
 	$title = str_replace( ' ', '_', $title );
+	$title = '"' . $title . '"';
 	echo $title . PHP_EOL;
 }
