@@ -4,10 +4,11 @@
  * This script returns a list of pages for generating a ZIM file for use at Kiwix
  */
 
-// List of private categories due to Extension:CategoryLockdown or others
-// see $wgCategoryLockdown in LocalSettings.php to keep the list updated
-$privateCategories = [
-	'Category:Medical Makers Private'
+// List of categories to ignore
+// for example private pages due to Extension:CategoryLockdown
+$categoriesToIgnore = [
+	'Medical Makers Private',
+	'Appropedia private'
 ];
 
 // Debug mode
@@ -34,26 +35,27 @@ while ( $continue = $api->find( 'apcontinue', $result ) ) {
 	$result = $api->query( $params );
 	$titles = array_merge( $titles, $api->find( 'title', $result ) );
 }
-//echo '<pre>'; var_dump( $titles ); exit; // Uncomment to debug
+//echo '<pre>' . implode( PHP_EOL, $titles ); exit; // Uncomment to debug
 
-// Get all the private pages
-$params2 = [
-	'action' => 'askargs',
-	'conditions' => implode( '|', $privateCategories ),
+// Get all the pages to ignore
+$params = [
+	'action' => 'ask',
+	'query' => '[[Category:' . implode( '||', $categoriesToIgnore ) . ']]',
 ];
-$result2 = $api->get( $params2 );
-//echo '<pre>'; var_dump( $result2 ); exit; // Uncomment to debug
-$results2 = $api->find( 'results', $result2 );
-$titles2 = array_keys( $results2 );
+$result = $api->get( $params );
+//echo '<pre>'; var_dump( $result ); exit; // Uncomment to debug
+$results = $api->find( 'results', $result );
+$titlesToIgnore = array_keys( $results );
+//echo '<pre>' . implode( PHP_EOL, $titlesToIgnore ); exit; // Uncomment to debug
 
-// Filter the private pages
-$titles = array_diff( $titles, $titles2 );
-//echo '<pre>'; var_dump( $titles ); exit; // Uncomment to debug
+// Filter the pages to ignore
+$titles = array_diff( $titles, $titlesToIgnore );
+//echo '<pre>' . implode( PHP_EOL, $titles ); exit; // Uncomment to debug
 
 // Print the titles, encoded
-header( 'Content-Type: text/csv; charset=utf-8' );
+header( 'Content-Type: text/tsv; charset=utf-8' );
+header( 'Content-Disposition: attachment; filename=appropedia.tsv' );
 foreach ( $titles as $title ) {
 	$title = str_replace( ' ', '_', $title );
-	$title = '"' . $title . '"';
 	echo $title . PHP_EOL;
 }
