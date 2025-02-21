@@ -31,6 +31,7 @@ $result = $api->query( $params );
 //echo '<pre>'; var_dump( $result ); exit; // Uncomment to debug
 $titles = $api->find( 'title', $result );
 while ( $continue = $api->find( 'apcontinue', $result ) ) {
+	sleep(1);
 	$params['apcontinue'] = $continue;
 	$result = $api->query( $params );
 	$titles = array_merge( $titles, $api->find( 'title', $result ) );
@@ -50,6 +51,7 @@ $titlesToIgnore = array_keys( $results );
 
 // Filter the pages to ignore
 $titles = array_diff( $titles, $titlesToIgnore );
+//$titles = array_splice( $titles, 0, 100 ); // Limit the number of pages to debug
 //echo '<pre>' . implode( PHP_EOL, $titles ); exit; // Uncomment to debug
 
 // Print the titles, encoded
