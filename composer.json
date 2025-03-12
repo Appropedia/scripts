@@ -1,7 +1,6 @@
 {
 	"require": {
-		"google/apiclient": "^2.0",
-		"google/cloud-translate": "^1.12",
-		"sophivorus/easy-wiki": "^2.0"
+		"sophivorus/easy-wiki": "^2.0",
+		"chillerlan/php-qrcode": "^5.0"
 	}
 }
