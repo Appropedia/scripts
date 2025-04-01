@@ -73,6 +73,7 @@ if ( $title ) {
 // Set the pages
 $pages = explode( ',', $pages );
 foreach ( $pages as $page ) {
+	$page = urldecode( $page );
 	$page = trim( $page );
 	$page = str_replace( ' ', '_', $page );
 	$page = urlencode( $page );
