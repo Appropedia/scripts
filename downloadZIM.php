@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This script generates and downloads a ZIM file containing a specified set of pages
+ * This script generates a ZIM file for a specified set of pages and prompts the user to download it
  * It uses the mwoffliner library to generate the ZIM file, see https://github.com/openzim/mwoffliner
  * and EasyWiki to interact with the Appropedia API, see https://github.com/Sophivorus/EasyWiki
  */
@@ -13,24 +13,22 @@ if ( $debug ) {
 	ini_set( 'display_errors', 1 );
 }
 
+// Load EasyWiki
+require 'vendor/autoload.php';
+
+// Check if the requested ZIM already exists
+// @todo Improve caching system
 $title = $_GET['title'] ?? 'appropedia';
-$titlee = str_replace( ' ', '_', $title );
+$titlee = str_replace( ' ', '_', $title ); // Extra "e" is for "encoded"
 $date = date( 'Y-m' );
 $filename = $titlee . '_' . $date . '.zim';
 $filepath = 'zims/' . $filename;
+//echo $filepath; exit; // Uncomment to debug
 
 if ( !file_exists( $filepath ) ) {
 
-	// Load EasyWiki
-	require 'vendor/autoload.php';
-
-	// Get the pages
-	if ( !array_key_exists( 'pages', $_GET ) ) {
-		exit;
-	}
-	$pages = $_GET['pages'];
-
-	// Query the API
+	// Fetch the pages
+	$pages = $_GET['pages'] ?? exit( 'Error! The "pages" param is required.' );
 	$pages = urldecode( $pages );
 	$pages = str_replace( '_', ' ', $pages );
 	$pages = str_replace( ',', '|', $pages );
@@ -39,7 +37,7 @@ if ( !file_exists( $filepath ) ) {
 	$result = $api->query( $params );
 	//echo '<pre>'; var_dump( $result ); exit; // Uncomment to debug
 
-	// Replace spaces for understcores or mwoffliner won't work
+	// Replace spaces for underscores or mwoffliner won't work
 	$titles = $api->find( 'title', $result );
 	if ( is_string( $titles ) ) {
 		$titles = [ $titles ];
@@ -51,11 +49,15 @@ if ( !file_exists( $filepath ) ) {
 
 	// Build the mwoffliner command
 	$icon = $_GET['icon'] ? urldecode( $_GET['icon'] ) : 'https://www.appropedia.org/logos/Appropedia-kiwix.png';
+	$description = $_GET['description'] ?? 'Powered by Appropedia, the sustainability wiki';
+	$mainpage = $_GET['mainpage'] ?? '';
+	$mainpagee = str_replace( ' ', '_', $mainpage );
 	$command = 'mwoffliner';
 	$command .= ' --adminEmail=admin@appropedia.org';
-	$command .= ' --customZimDescription="Shared knowledge to build rich, sustainable lives"';
-	$command .= ' --customZimFavicon=' . $icon;
 	$command .= ' --customZimTitle="' . $title . '"';
+	$command .= ' --customZimFavicon=' . $icon;
+	$command .= ' --customZimDescription="' . $description . '"';
+	$command .= ' --customMainPage=' . $mainpagee;
 	$command .= ' --filenamePrefix=' . $titlee;
 	$command .= ' --mwUrl=https://www.appropedia.org/';
 	$command .= ' --outputDirectory=/home/appropedia/public_html/scripts/zims';
@@ -67,6 +69,8 @@ if ( !file_exists( $filepath ) ) {
 	$command .= ' --forceRender=RestApi';
 	$command .= ' --verbose';
 	//echo '<pre>' . $command; exit; // Uncomment to debug
+
+	// Make the ZIM file (this may take several seconds)
 	exec( $command, $output );
 	//echo '<pre>' . var_dump( $output ); exit; // Uncomment to debug
 }
