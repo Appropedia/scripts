@@ -62,7 +62,9 @@ $status = $properties['Project status'] ?? '';
 $made = $properties['Project was made'] ?? '';
 $uses = $properties['Project uses'] ?? '';
 $type = $properties['Project type'] ?? '';
+$location = $properties['Location'] ?? '';
 $license = $properties['License'] ?? 'CC-BY-SA-4.0';
+$organizations = $properties['Organizations'] ?? '';
 $sdg = $properties['SDG'] ?? '';
 $language = $properties['Language code'] ?? 'en';
 //echo '<pre>'; var_dump( $properties ); exit; // Uncomment to debug
@@ -73,6 +75,10 @@ $mainAuthor = $authors[0]; // @todo The next version of OKH will support multipl
 if ( $mainAuthor == 'User:Anonymous1 ') {
 	$mainAuthor = '';
 }
+$organizations = explode( ',', $organizations );
+$affiliation = $organizations[0];
+$location = explode( ',', $location );
+$location = $location[0];
 
 // Build the YAML file
 header( "Content-Type: application/x-yaml" );
@@ -90,7 +96,7 @@ manifest-author:
   affiliation: Appropedia
   email: admin@appropedia.org
 documentation-language: $language
- 
+
 # Properties
 title: $title" . ( $extract ? ( "
 description: $extract" ) : '' ) . ( $uses ? ( "
@@ -116,8 +122,8 @@ variant-of:
 license:
   documentation: $license
 licensor:
-  name: $mainAuthor" . ( $affiliations ? "
-  affiliation: $affiliations" : '' ) . "
+  name: $mainAuthor" . ( $affiliation ? "
+  affiliation: $affiliation" : '' ) . "
   contact: https://www.appropedia.org/" . str_replace( ' ', '_', $mainAuthor ) . "
   documentation-home: https://www.appropedia.org/$titlee
 
