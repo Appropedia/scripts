@@ -7,49 +7,47 @@
 $title = $_GET['title'] ?? exit( 'Title required' );
 $title = preg_replace( '/\s+/', '_', $title );
 
-$extract = file_get_contents( "https://www.appropedia.org/w/api.php?action=parse&page=$title&prop=sections&format=json" );
+$params = [
+	'action' => 'parse',
+	'page' => $title,
+	'prop' => 'sections',
+	'format' => 'json',
+];
+$query = http_build_query( $params );
+$extract = file_get_contents( 'https://www.appropedia.org/w/api.php?' . $query );
 $extract = json_decode( $extract, true );
 
-/*
-$sectionName = $_GET['section'];
-if ( !array_key_exists( 'section', $_GET ) ) {
-	exit( 'Section required' );
-}
-*/
-
-// ?> <pre> <?php echo $sectionName; ?> </pre> <?php 
+// Figure out the section number
 $sectionName = $_GET['section-selector'] ?? 'Bill of materials';
-
 foreach ( $extract['parse']['sections'] as $k => $section ) {
 	if ( strtolower( $section['anchor'] ) === preg_replace( '/(\s+)/', '_', strtolower( $sectionName ) ) ) {
 		$sectionNumber = $k + 1;
 	}
 }
 
-$extract2 = file_get_contents( "https://www.appropedia.org/w/api.php?action=parse&page=$title&section=$sectionNumber&prop=wikitext&format=json" );
+// Get the wikitext of the selected section
+$params2 = [
+	'action' => 'parse',
+	'page' => $title,
+	'section' => $sectionNumber,
+	'disableeditsection' => true,
+	'disabletoc' => true,
+	'format' => 'json',
+];
+$query2 = http_build_query( $params2 );
+$extract2 = file_get_contents( 'https://www.appropedia.org/w/api.php?' . $query2 );
 $extract2 = json_decode( $extract2, true );
+$extract2 = $extract2['parse']['text']['*'];
+$wikitext = json_encode( $extract2 );
+$wikitext = preg_replace( '#(?=<!--)([\s\S]*?)-->#', '', $wikitext ); // Remove comments
 
-$wikiText = json_encode( $extract2['parse']['wikitext']['*'] );
-$wikiText = preg_replace( '/==.*==/', '', $wikiText );
-$wikiText = trim( substr( $wikiText, 1, -1 ) );
-
-$extract3 = file_get_contents( "https://www.appropedia.org/w/api.php?action=parse&page=$title&section=$sectionNumber&format=json" );
-$extract3 = json_decode( $extract3, true );
-$extract3 = $extract3['parse']['text']['*'];
-
-$wikiText2 = json_encode( $extract3 );
-$wikiText2 = preg_replace( '#<span class=\\\"mw-editsection\\\">(.*?)<\\\/span><\\\/h2>#', '</h2>', $wikiText2 );
-$wikiText2 = preg_replace( '#(?=<!--)([\s\S]*?)-->#', '', $wikiText2 );
-
-?>
-
-<!DOCTYPE html>
+?><!DOCTYPE html>
 <html>
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>OSHWA</title>
-		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
 		<style>
 			.small-middle-container {
 				margin: auto;
@@ -102,14 +100,14 @@ $wikiText2 = preg_replace( '#(?=<!--)([\s\S]*?)-->#', '', $wikiText2 );
 		</div>
 	
 	<pre id="textonly" class="col-sm-6 offset-sm-3 my-5 px-5 border border-primary text-bg-light" style="--bs-border-opacity: .5;"><code>
-		<?php echo json_decode( $wikiText2 ) ?? '<h2>Select a valid section</h2>'; ?>
+		<?php echo json_decode( $wikitext ) ?? '<h2>Select a valid section</h2>'; ?>
 	</code></pre>
 
 	</div>
 
 	<div class="container">
 	<button class="btn waves-light blue lighten-3" data-clipboard-target="#textonly">Copy as text</button>
-	<button class="btn waves-light blue lighten-3" data-clipboard-text="<?php echo htmlspecialchars(json_decode($wikiText2)); ?>">Copy as HTML</button>
+	<button class="btn waves-light blue lighten-3" data-clipboard-text="<?php echo htmlspecialchars(json_decode($wikitext)); ?>">Copy as HTML</button>
 	</div>
 
 		<!--JavaScript at end of body for optimized loading-->
