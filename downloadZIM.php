@@ -38,9 +38,11 @@ $titles = array_map( function ( $title ) {
 
 // Build the mwoffliner command
 $title = $_GET['title'] ?? 'appropedia';
+$title = substr( $title, 0, 30 ); // Title cannot have more than 30 chars
 $titlee = str_replace( ' ', '_', $title ); // Extra "e" is for "encoded"
 $icon = $_GET['icon'] ? urldecode( $_GET['icon'] ) : 'https://www.appropedia.org/logos/Appropedia-kiwix.png';
 $description = $_GET['description'] ?? 'From Appropedia, the sustainability wiki';
+$description = substr( $description, 0, 80 ); // Description cannot have more than 80 chars
 $mainpage = $_GET['mainpage'] ?? '';
 $mainpagee = str_replace( ' ', '_', $mainpage );
 $command = 'mwoffliner';
