@@ -21,7 +21,7 @@ $title = $_GET['title'] ?? null;
 $subtitle = $_GET['subtitle'] ?? null;
 $text = $_GET['text'] ?? null;
 $logo = $_GET['logo'] ?? null;
-$logowidth = $_GET['logowidth'] ?? null;
+$logowidth = $_GET['logowidth'] ?? 100;
 $qrpage = $_GET['qrpage'] ?? null;
 $pages = $_GET['pages'] ?? null;
 
@@ -33,6 +33,7 @@ if ( !$pages ) {
 // Start building the command
 $command = 'wkhtmltopdf';
 $command .= ' --user-style-sheet downloadPDF.css';
+$command .= ' --footer-center [page]';
 
 // Set the cover
 if ( $title ) {
