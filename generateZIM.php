@@ -1,9 +1,8 @@
 <?php
 
 /**
- * This script generates a ZIM file for a specified set of pages and prompts the user to download it
- * It uses the mwoffliner library to generate the ZIM file, see https://github.com/openzim/mwoffliner
- * and EasyWiki to interact with the Appropedia API, see https://github.com/Sophivorus/EasyWiki
+ * This script generates a ZIM file containing a specified set of pages.
+ * See the README for details.
  */
 
 // Debug mode

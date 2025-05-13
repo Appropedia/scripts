@@ -1,9 +1,8 @@
 <?php
 
 /**
- * This script takes a project title
- * generates an Open Know How Manifest
- * and downloads it
+ * This script generates a YAML file containing the Open Know How Manifest for a given project.
+ * See the README for details.
  */
 
 // Debug mode

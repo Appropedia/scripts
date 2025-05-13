@@ -1,8 +1,8 @@
 <?php
 
 /**
- * This script generates and downloads a PDF containing a specified set of pages
- * It uses the wkhtmltopdf library, see https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
+ * This script generates a PDF containing a specified set of pages.
+ * See the README for details.
  */
 
 // Debug mode
@@ -32,7 +32,7 @@ if ( !$pages ) {
 
 // Start building the command
 $command = 'wkhtmltopdf';
-$command .= ' --user-style-sheet downloadPDF.css';
+$command .= ' --user-style-sheet generatePDF.css';
 $command .= ' --footer-center [page]';
 
 // Set the cover
