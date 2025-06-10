@@ -90,6 +90,7 @@ exec( $command );
 $filename = $title ? $title : 'appropedia';
 header( 'Content-Type: application/pdf' );
 header( 'Content-Disposition: attachment; filename=' . $filename . '.pdf' );
+header( 'Access-Control-Allow-Origin: *' );
 readfile( 'temp.pdf' );
 
 // Clean up

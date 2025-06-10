@@ -71,5 +71,6 @@ $date = date( 'Y-m' );
 $filename = $titlee . '_' . $date . '.zim';
 header( 'Content-Type: application/octet-stream' );
 header( 'Content-Disposition: attachment; filename=' . $title . '.zim' );
+header( 'Access-Control-Allow-Origin: *' );
 readfile( $filename );
 unlink( $filename );

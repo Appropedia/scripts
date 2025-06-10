@@ -80,8 +80,9 @@ $location = explode( ',', $location );
 $location = $location[0];
 
 // Build the YAML file
-header( "Content-Type: application/x-yaml" );
-header( "Content-Disposition: attachment; filename = $titlee.yaml" );
+header( 'Content-Type: application/x-yaml' );
+header( 'Content-Disposition: attachment; filename=' . $titlee . '.yaml' );
+header( 'Access-Control-Allow-Origin: *' );
 
 echo "# Open know-how manifest 1.0
 # The content of this manifest file is licensed under a Creative Commons Attribution 4.0 International License. 
