@@ -19,7 +19,6 @@ use chillerlan\QRCode\QRCode;
 // Get the params
 $title = $_GET['title'] ?? null;
 $subtitle = $_GET['subtitle'] ?? null;
-$text = $_GET['text'] ?? null;
 $logo = $_GET['logo'] ?? null;
 $logowidth = $_GET['logowidth'] ?? 100;
 $qrpage = $_GET['qrpage'] ?? null;
@@ -32,6 +31,7 @@ if ( !$pages ) {
 
 // Start building the command
 $command = 'wkhtmltopdf';
+$command .= ' --print-media-type';
 $command .= ' --user-style-sheet generatePDF.css';
 $command .= ' --footer-center [page]';
 
@@ -53,9 +53,6 @@ if ( $title ) {
 		$html .= '<p id="cover-subtitle">' . $subtitle . '</p>';
 	}
 	$html .= '</header>';
-	if ( $text ) {
-		$html .= '<p id="cover-text">' . $text . '</p>';
-	}
 	if ( $qrpage ) {
 		$qrpage = str_replace( ' ', '_', $qrpage );
 		$qrcode = new QRCode;
