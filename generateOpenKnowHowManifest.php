@@ -24,10 +24,8 @@ $api = new EasyWiki( 'https://www.appropedia.org/w/api.php' );
 $params = [
 	'titles' => $title,
 	'prop' => 'extracts|pageimages|revisions',
-	'exintro' => true,
-	'exsentences' => 5,
-	'exlimit' => 1,
 	'explaintext' => 1,
+	'exsentences' => 10,
 	'pithumbsize' => 1000,
 	'rvprop' => 'timestamp',
 	'rvlimit' => '500',
@@ -40,9 +38,6 @@ if ( $missing ) {
 //echo '<pre>'; var_dump( $result ); exit; // Uncomment to debug
 
 // Process the page properties
-$extract = $api->find( 'extract', $result );
-$extract = str_replace( "\n", ' ', $extract );
-$extract = trim( $extract );
 $image = $api->find( 'source', $result );
 $revisions = $api->find( 'revisions', $result );
 $revisions = is_string( $revisions ) ? [ $revisions ] : $revisions;
@@ -51,12 +46,19 @@ $dateCreated = end( $revisions )['timestamp'];
 $dateCreated = substr( $dateCreated, 0, -10 );
 $dateUpdated = reset( $revisions )['timestamp'];
 $dateUpdated = substr( $dateUpdated, 0, -10 );
+$extract = $api->find( 'extract', $result );
+$extract = preg_split( '/\n==+.+==\n/', $extract ); // Split by section
+$extract = array_filter( $extract ); // Remove empty sections
+$extract = reset( $extract ); // Use the first section
+$extract = preg_replace( '/\n+/', ' ', $extract ); // Merge paragraphs
+$extract = trim( $extract );
 
 // Get the semantic properties
 $contents = @file_get_contents( 'https://www.appropedia.org/w/rest.php/v1/page/' . urlencode( $titlee ) . '/semantic' );
 $properties = $contents ? json_decode( $contents, true ) : [];
 $keywords = $properties['Keywords'] ?? '';
 $authors = $properties['Project authors'] ?? $properties['Authors'] ?? '';
+$description = $properties['Project description'] ?? $extract ?? '';
 $status = $properties['Project status'] ?? '';
 $made = $properties['Project was made'] ?? '';
 $uses = $properties['Project uses'] ?? '';
@@ -68,7 +70,7 @@ $sdg = $properties['SDG'] ?? '';
 $language = $properties['Language code'] ?? 'en';
 //echo '<pre>'; var_dump( $properties ); exit; // Uncomment to debug
 
-// Process the properties
+// Process the semantic properties
 $authors = explode( ',', $authors );
 $mainAuthor = $authors[0]; // @todo The next version of OKH will support multiple authors
 if ( $mainAuthor == 'User:Anonymous1 ') {
@@ -76,8 +78,17 @@ if ( $mainAuthor == 'User:Anonymous1 ') {
 }
 $organizations = explode( ',', $organizations );
 $affiliation = $organizations[0];
-$location = explode( ',', $location );
+$location = explode( ';', $location );
 $location = $location[0];
+$keywords = explode( ',', $keywords );
+$keywords = array_map( function ( $keyword ) {
+	$keyword = trim( $keyword );
+	$keyword = ltrim( $keyword, '[' );
+	$keyword = rtrim( $keyword , ']' );
+	$keyword = strtolower( $keyword );
+	return $keyword;
+}, $keywords );
+$keywords = array_filter( $keywords );
 
 // Build the YAML file
 header( 'Content-Type: application/x-yaml' );
@@ -92,22 +103,22 @@ echo "# Open know-how manifest 1.0
 date-created: $dateCreated
 date-updated: $dateUpdated
 manifest-author:
-  name: OKH Bot
+  name: Appropedia bot
   affiliation: Appropedia
   email: admin@appropedia.org
 documentation-language: $language
 
 # Properties
-title: $title" . ( $extract ? ( "
-description: $extract" ) : '' ) . ( $uses ? ( "
+title: $title" . ( $description ? ( "
+description: $description" ) : '' ) . ( $uses ? ( "
 intended-use: $uses" ) : '' ) . ( $keywords ? ( '
 keywords:
-  - ' . str_replace( ',', "\n  -", $keywords ) ) : '' ) . "
+  - ' . implode( "\n  - ", $keywords ) ) : '' ) . "
 project-link: https://www.appropedia.org/$titlee
 contact:
   name: $mainAuthor
   social:
-  - platform: Appropedia
+    platform: Appropedia
     user-handle: $mainAuthor" . ( $location ? "
 location: $location" : '' ). ( $image ? "
 image: $image" : '' ) . ( $version ? "
