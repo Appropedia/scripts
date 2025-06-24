@@ -50,8 +50,6 @@ $extract = $api->find( 'extract', $result );
 $extract = preg_split( '/\n==+.+==\n/', $extract ); // Split by section
 $extract = array_filter( $extract ); // Remove empty sections
 $extract = reset( $extract ); // Use the first section
-$extract = preg_replace( '/\n+/', ' ', $extract ); // Merge paragraphs
-$extract = trim( $extract );
 
 // Get the semantic properties
 $contents = @file_get_contents( 'https://www.appropedia.org/w/rest.php/v1/page/' . urlencode( $titlee ) . '/semantic' );
@@ -76,6 +74,8 @@ $mainAuthor = $authors[0]; // @todo The next version of OKH will support multipl
 if ( $mainAuthor == 'User:Anonymous1 ') {
 	$mainAuthor = '';
 }
+$description = preg_replace( '/\n+/', ' ', $description ); // Merge paragraphs
+$description = trim( $description );
 $organizations = explode( ',', $organizations );
 $affiliation = $organizations[0];
 $location = explode( ';', $location );
