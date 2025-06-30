@@ -71,6 +71,7 @@ $language = $properties['Language code'] ?? 'en';
 // Process the semantic properties
 $authors = explode( ',', $authors );
 $mainAuthor = $authors[0]; // @todo The next version of OKH will support multiple authors
+$mainAuthor = preg_replace( "/''+/", '', $mainAuthor ); // Remove italics and bold
 if ( $mainAuthor == 'User:Anonymous1 ') {
 	$mainAuthor = '';
 }
